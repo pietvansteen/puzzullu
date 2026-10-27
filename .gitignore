@@ -1,0 +1,6 @@
+.env
+*.local.md
+data/
+!data/.gitkeep
+__pycache__/
+.DS_Store
