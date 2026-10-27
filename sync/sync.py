@@ -12,6 +12,10 @@ The Sheet has two layouts:
     Voorronde/finale tijden. Names are matched loosely; the real clean-up is the migration.
 Both give the same data.json.
 
+Once a day it also fetches the JvH catalogue (jvh.py) into jvh.json, which adds the known piece counts
+("versies") and JvH links to data.json. Pictures JvH has and the Sheet not yet are logged; writing them
+to the Afbeeldingen tab goes through the Apps Script (step 4). sync-now with {"jvh": true} fetches it at once.
+
 Settings via environment variables (see docker-compose.yml):
   SHEET_ID          ID of the Google Sheet (Jan van Haasteren Puzzel Collectie 3.0)
   COLLECTIE_GID     gid of "Puzzel Collectie 2.0" (old layout)
@@ -20,6 +24,8 @@ Settings via environment variables (see docker-compose.yml):
   AFBEELDINGEN_GID / EXEMPLAREN_GID / LOGS_GID   gids of the new tabs (empty = old layout)
   OUT_FILE          output path (default /data/data.json)
   INTERVAL          seconds between two syncs (default 86400); 0 = run once
+  JVH_FILE          the JvH catalogue (default jvh.json next to OUT_FILE), fetched at most once a day
+  JVH_SCRAPE        0 = never fetch the JvH catalogue (use the file as it is)
   <NAME>_CSV        optional: a local CSV file instead of Google, e.g. COLLECTIE_CSV=testdata/collectie.csv
 
   python3 sync/sync.py --snapshot testdata   saves every tab as testdata/<name>.csv (for CSV=1 in tools/dev.py)
@@ -32,9 +38,11 @@ import os
 import re
 import sys
 import time
-import unicodedata
 import urllib.request
 from datetime import date, datetime, timezone
+
+import jvh
+from jvh import name_key, slug
 
 SHEET_ID = os.environ.get("SHEET_ID", "1vjYevi2UsbTKv6OzcFz99j65SVbGRbZt_eLIciEVIHA")
 GIDS = {
@@ -48,6 +56,9 @@ GIDS = {
 OUT_FILE = os.environ.get("OUT_FILE", "/data/data.json")
 INTERVAL = int(os.environ.get("INTERVAL", "86400"))
 SYNC_FLAG = os.path.join(os.path.dirname(os.path.abspath(OUT_FILE)), "sync-now")
+JVH_FILE = os.environ.get("JVH_FILE") or os.path.join(os.path.dirname(os.path.abspath(OUT_FILE)), "jvh.json")
+JVH_SCRAPE = os.environ.get("JVH_SCRAPE", "1") != "0"
+JVH_MAX_AGE = 20 * 3600  # fetch the catalogue at most about once a day
 
 EXPORT_URL = "https://docs.google.com/spreadsheets/d/{sheet}/export?format=csv&gid={gid}"
 NEW_TABS = ("AFBEELDINGEN", "EXEMPLAREN", "LOGS")
@@ -101,16 +112,6 @@ def header_row(rows, first_column):
         if any(c.strip().lower() == first_column for c in row[:3]):
             return i
     return 0
-
-
-def slug(s):
-    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
-    return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
-
-
-def name_key(s):
-    """Loose key for matching puzzle names: no case, accents, spaces or punctuation (Air Show = Airshow!)."""
-    return slug(s).replace("-", "")
 
 
 def seconds(t):
@@ -191,7 +192,7 @@ def parse_new(tabs):
         "datum": iso_date(cell(r, c["datum"])), "makers": makers(cell(r, c["makers"])),
         "missend": missing(cell(r, c["compleet"])), "gefilmd": yes(cell(r, c["gefilmd"])),
         "video": cell(r, c["video"]),
-    } for r in rows[1:] if cell(r, c["id"]) and seconds(cell(r, c["tijd"])) is not None]
+    } for r in rows[1:] if cell(r, c["id"])]  # a log may have no time (done, but not timed)
     return afbeeldingen, exemplaren, logs
 
 
@@ -250,7 +251,7 @@ def parse_old(tabs):
         m = missing(cell(r, c["compleet"]))
         if cell(r, c["compleet"]) and (ex_id not in last_missing or (dag or "") >= last_missing[ex_id][0]):
             last_missing[ex_id] = (dag or "", m)  # the most recent value counts for the box
-        if sec is not None:
+        if sec is not None or dag:  # done; sometimes without a time ("Te lang", or not timed)
             logs.append({"id": f"r{nr}", "exemplaar": ex_id, "sec": sec, "datum": dag,
                          "makers": makers(cell(r, c["makers"])), "missend": m,
                          "gefilmd": yes(cell(r, c["gefilmd"])), "video": cell(r, c["video"])})
@@ -285,12 +286,58 @@ def parse_nk(rows, afbeeldingen):
     return nk
 
 
+# ---------------------------------------------------------------- JvH catalogue
+
+def update_jvh(force=False):
+    """Fetch the JvH catalogue into JVH_FILE when it is older than a day (or when asked). Keeps the old file on errors."""
+    if not JVH_SCRAPE:
+        return
+    try:
+        if not force and time.time() - os.path.getmtime(JVH_FILE) < JVH_MAX_AGE:
+            return
+    except OSError:
+        pass
+    try:
+        cat = jvh.catalogue()
+    except Exception as e:
+        log(f"ERROR: JvH catalogue: {e}; keeping the old one")
+        return
+    write_atomic({"updated": datetime.now(timezone.utc).isoformat(timespec="seconds"), **cat}, JVH_FILE)
+    log(f"JvH catalogue: {len(cat['afbeeldingen'])} pictures from {cat['puzzels']} puzzles "
+        f"({cat['combi']} combo boxes left out) -> {JVH_FILE}")
+
+
+def add_catalogue(afbeeldingen):
+    """Known piece counts and JvH links from the catalogue; returns the catalogue pictures the Sheet does not have."""
+    try:
+        with open(JVH_FILE, encoding="utf-8") as f:
+            cat = json.load(f)["afbeeldingen"]
+    except (OSError, ValueError, KeyError):
+        return []
+    by_id, by_key = {c["id"]: c for c in cat}, {}
+    for c in cat:
+        for k in (name_key(c["nl"]), name_key(c["en"])):
+            by_key.setdefault(k, c)
+    seen = set()
+    for a in afbeeldingen:
+        c = by_id.get(a["id"]) or by_key.get(name_key(a["en"])) or by_key.get(name_key(a["nl"]))
+        a["versies"] = c["versies"] if c else []
+        if c:
+            seen.add(c["id"])
+            a["jvhUrl"] = a["jvhUrl"] or c["jvhUrl"]
+    return [c for c in cat if c["id"] not in seen]
+
+
 # ---------------------------------------------------------------- data.json
 
 def build(tabs):
     new = all(tabs.get(t) for t in NEW_TABS)
     afbeeldingen, exemplaren, logs = parse_new(tabs) if new else parse_old(tabs)
     logs.sort(key=lambda l: (l["datum"] or "", l["id"]))
+    missing_jvh = add_catalogue(afbeeldingen)
+    if missing_jvh:
+        log(f"{len(missing_jvh)} JvH picture(s) not in the Sheet yet: "
+            f"{', '.join(c['nl'] for c in missing_jvh[:8])}{' …' if len(missing_jvh) > 8 else ''}")
     personen = sorted({m for l in logs for m in l["makers"]} | {e["eigenaar"] for e in exemplaren if e["eigenaar"]},
                       key=str.lower)
     return {
@@ -332,20 +379,21 @@ def sync_once():
 
 
 def wait():
-    """Sleep INTERVAL seconds, or less when the API asks for a sync. Returns the asked-for log id ('' = none), or None."""
+    """Sleep INTERVAL seconds, or less when the API asks for a sync. Returns the sync-now contents
+    ({"log": id} and/or {"jvh": true}; {} for a plain update), or None after INTERVAL."""
     end = time.time() + INTERVAL
     while time.time() < end:
         if os.path.exists(SYNC_FLAG):
             try:
                 with open(SYNC_FLAG, encoding="utf-8") as f:
-                    asked = json.load(f).get("log")
-            except (OSError, ValueError, AttributeError):
-                asked = None
+                    asked = json.load(f)
+            except (OSError, ValueError):
+                asked = {}
             try:
                 os.remove(SYNC_FLAG)  # first, so a new log during this sync asks again
             except OSError:
                 pass
-            return str(asked) if asked else ""
+            return asked if isinstance(asked, dict) else {}
         time.sleep(2)
     return None
 
@@ -363,15 +411,17 @@ def snapshot(folder):
 def main():
     if sys.argv[1:2] == ["--snapshot"]:
         return snapshot(sys.argv[2] if len(sys.argv) > 2 else "testdata")
-    asked = None
+    asked = {}
     while True:
+        update_jvh(force=bool(asked and asked.get("jvh")))
+        want = str(asked.get("log") or "") if asked else ""
         # Google's CSV export can lag a few seconds behind a change: try again until the new log is in
-        for attempt in range(6 if asked else 1):
+        for attempt in range(6 if want else 1):
             try:
                 data = sync_once()
-                if not asked or any(l["id"] == asked for l in data["logs"]):
+                if not want or any(l["id"] == want for l in data["logs"]):
                     break
-                log(f"log {asked} not in the export yet, trying again")
+                log(f"log {want} not in the export yet, trying again")
             except Exception as e:  # the old data.json stays in place
                 log(f"ERROR: {e}")
                 if INTERVAL == 0:
@@ -381,8 +431,8 @@ def main():
             break
         asked = wait()
         if asked is not None:
-            log(f"sync asked for (new log {asked})" if asked else "sync asked for (update from the Sheet)")
-
+            log("sync asked for" + (f" (new log {asked['log']})" if asked.get("log") else "")
+                + (" (JvH catalogue)" if asked.get("jvh") else ""))
 
 if __name__ == "__main__":
     main()

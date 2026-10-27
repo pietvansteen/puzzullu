@@ -20,6 +20,8 @@ COLLECTIE_CSV=testdata/collectie.csv UITGAVES_CSV=testdata/uitgaves.csv NK_CSV=t
   OUT_FILE=data/data.json INTERVAL=0 python3 sync/sync.py
 ```
 
+Migration report (step 2): `python3 tools/migratie.py` reads the old tabs (from `testdata/` when there) and the JvH catalogue (cached in `migratie/`), and writes `migratie/rapport.html` (for Piet to confirm), `migratie/keuzes.csv` (uncertain links; fill in the `keuze` column with an `afbeelding_id` or `nieuw` and run again) and the new tabs as CSV (`afbeeldingen`, `exemplaren`, `logs`, `personen`, `nk-tijden`). `migratie/` is gitignored and nothing is written to the Sheet.
+
 Serving the site locally: `python3 tools/dev.py` (or the `puzzullu` entry in `.claude/launch.json`) serves http://localhost:8091 like nginx does (`/data.json`, `/api/` proxied to the API on port 8001), and starts the API and the sync against the live Sheet (`CSV=1` for `testdata/`). It reads `.env` (gitignored); without `ADMIN_TOKEN` the password is `test`.
 
 After **every** change under `site/`:
@@ -38,15 +40,16 @@ Hosting goes through funkyorbit's existing Cloudflare Tunnel: its cloudflared jo
 
 ```
 Google Sheet ──CSV──> sync/sync.py (daily, or at once on data/sync-now) ──> data/data.json ──> nginx ──> site/ pages
-     ^                     └─ daily JvH scrape (step 2)                             └──> api/api.py (/api/)
+     ^                     └─ daily JvH catalogue (sync/jvh.py -> data/jvh.json)    └──> api/api.py (/api/)
      └── apps-script/Puzzullu.gs (web app, step 4) <── POST /api/... (api.py, password) ── writes data/sync-now
 ```
 
 - **sync/sync.py** fetches the Sheet tabs by gid (defaults in `sync.py`, overridable via `docker-compose.yml`; `<NAME>_CSV` env vars read a local file instead). Two layouts give the same `data.json`:
   - **old** (now): `Puzzel Collectie 2.0` (one row per log or per box), `Alle uitgaves JvH` (titles, artist, year, rating; header on row 3) and `Voorronde/finale tijden` (NK times). Names are matched loosely (`name_key`); unmatched names become their own puzzle until the migration.
   - **new** (after the migration, when `AFBEELDINGEN_GID`, `EXEMPLAREN_GID` and `LOGS_GID` are set): tabs `Afbeeldingen`, `Exemplaren`, `Logs`, `NK-tijden`, columns matched by name as in the spec.
-  - `data.json` keys: `updated, layout, afbeeldingen` (id, en, nl, tekenaar, jaar, rating, bron, jvhUrl, opmerking), `exemplaren` (id, afbeelding, stukjes, eigenaar, volgnummer, missend, weg), `logs` (id, exemplaar, sec, datum ISO, makers sorted, missend, gefilmd, video; oldest first), `nk` (puzzel, afbeelding, jaar, sec, categorie, ronde), `personen`. Written atomically; when nothing can be read the old file stays. The sync-now file may hold `{"log": "<id>"}`: the sync retries until that log is in Google's CSV export.
-- **api/api.py**: `GET /api/health`, `GET /api/auth`, `POST /api/sync`. Admin calls need `Authorization: Bearer <ADMIN_TOKEN>`; wrong passwords are limited to 10 per address per 15 minutes. The write actions to the Apps Script come in step 4.
+  - Once a day (or at once with `{"jvh": true}` in sync-now) it fetches the JvH catalogue with **sync/jvh.py** into `data/jvh.json`: every picture of *lijst alle afbeeldingen*, plus titles of *lijst alle puzzels* that are not in it (bron `jvh-puzzels`), without combo boxes, each with its piece counts (`versies`). Fail-safe: fewer than 250 pictures or 800 puzzles = the page broke, the old file stays. `build` adds `versies` and `jvhUrl` to the Sheet's pictures and logs the JvH pictures the Sheet does not have yet (writing them to the Sheet comes with the Apps Script, step 4).
+  - `data.json` keys: `updated, layout, afbeeldingen` (id, en, nl, tekenaar, jaar, rating, bron, jvhUrl, opmerking, versies), `exemplaren` (id, afbeelding, stukjes, eigenaar, volgnummer, missend, weg), `logs` (id, exemplaar, sec (null when done without a time), datum ISO, makers sorted, missend, gefilmd, video; oldest first), `nk` (puzzel, afbeelding, jaar, sec, categorie, ronde), `personen`. Written atomically; when nothing can be read the old file stays. The sync-now file may hold `{"log": "<id>"}`: the sync retries until that log is in Google's CSV export.
+- **api/api.py**: `GET /api/health`, `GET /api/auth`, `POST /api/sync`, `POST /api/jvh` (sync plus the JvH catalogue now). Admin calls need `Authorization: Bearer <ADMIN_TOKEN>`; wrong passwords are limited to 10 per address per 15 minutes. The write actions to the Apps Script come in step 4.
 - **site/shared.js** (`window.PZ`): `esc`, `getal`, `tijd` (seconds → `u:mm:ss`), `datum` (ISO → `dd-mm-jjjj`), `sterren`, `data()` (cached fetch of `/data.json`). Each page has its own folder and script; the overview is `/` (`overzicht.js`), release notes `/wat-is-nieuw/` (renders `changelog.json`). Still to come: `/statistieken/`, `/generator/`, `/loggen/` (admin, noindex, "Loggen" in the menu only on devices with the password in `localStorage`).
 - `site/logo.svg` is the temporary logo from Piet (white piece and letters on `#2a3c9a`); it is also the favicon. The site keeps its own darker navy (`--paper: #0f1f3f`), which Piet prefers over the logo's blue. The background pieces are the logo's piece in a data URI in `style.css`, each with its own size and rotation.
 
@@ -71,7 +74,7 @@ Google Sheet ──CSV──> sync/sync.py (daily, or at once on data/sync-now) 
 ## Build order
 
 1. Repo, docs, Docker Compose, `tools/dev.py`, `tools/release.py`, sync reading the Sheet → `0.1.0` (done)
-2. JvH scraper + migration report → Piet confirms the names → migration → `0.2.0`
+2. JvH scraper + migration report (done) → Piet confirms the names → migration → `0.2.0`
 3. Overview page → `0.3.0`
 4. Apps Script `Puzzullu.gs` + `api.py` write actions + Loggen & beheer → `0.4.0`
 5. Generator → `0.5.0`

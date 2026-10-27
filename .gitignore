@@ -6,3 +6,4 @@ testdata/*.csv
 __pycache__/
 .DS_Store
 *.local.md
+migratie/

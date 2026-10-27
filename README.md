@@ -14,6 +14,8 @@ Google Sheet ──(dagelijks, of meteen)──> sync ──> data/data.json ─
 |---|---|
 | `site/` | De website: `index.html` + `overzicht.js` (overzicht), `wat-is-nieuw/` (release notes), `shared.js`, `style.css`, `logo.svg`. Later ook `statistieken/`, `generator/` en `loggen/` |
 | `sync/sync.py` | Haalt de tabbladen van de Sheet op als CSV en schrijft `data/data.json` |
+| `sync/jvh.py` | Haalt één keer per dag de JvH-catalogus op (alle afbeeldingen en alle uitgaves) uit het digitaal museum van jvh-puzzels.nl |
+| `tools/migratie.py` | Eenmalig: zet de oude tabbladen om naar de nieuwe, met een rapport om eerst te controleren |
 | `api/api.py` | Kleine API achter het wachtwoord: de Sheet nu bijwerken, en (later) tijden loggen en de collectie aanpassen via de Apps Script |
 | `web/nginx.conf` | Serveert de site en `data.json`, en stuurt `/api/` door naar de API |
 | `tools/release.py` | Zet de nieuwste versie uit `site/changelog.json` in de footer en op de links naar css/js/svg |

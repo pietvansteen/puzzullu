@@ -5,6 +5,7 @@ Puzzullu API behind nginx on /api/. Standard library only, no pip needed.
   GET  /api/health   is the API up, and how old is data.json
   GET  /api/auth     checks the password (Authorization: Bearer <ADMIN_TOKEN>)
   POST /api/sync     asks the sync to fetch the Sheet now (writes data/sync-now)
+  POST /api/jvh      the same, and fetch the JvH catalogue now too
 
 The write actions (logging a time, owners, video links, ratings) come in step 4 and go to the Apps Script
 (SHEET_WRITE_URL + SHEET_WRITE_SECRET). Wrong passwords are rate-limited per address.
@@ -35,10 +36,11 @@ def log(msg):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
 
 
-def ask_sync(log_id=""):
+def ask_sync(**what):
+    """Write sync-now: {} = update from the Sheet, log="<id>" = wait for that log, jvh=True = fetch the JvH catalogue too."""
     tmp = SYNC_FLAG + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump({"log": log_id}, f)
+        json.dump(what, f)
     os.replace(tmp, SYNC_FLAG)
 
 
@@ -92,6 +94,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if self.authorized():
                 ask_sync()
                 log("sync asked for")
+                self.send(200, {"ok": True})
+            return
+        if path == "/api/jvh":
+            if self.authorized():
+                ask_sync(jvh=True)
+                log("sync with JvH catalogue asked for")
                 self.send(200, {"ok": True})
             return
         self.send(404, {"error": "Onbekend adres."})
