@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-puzzullu.funkyorbit.nl: the website of Puzzullu, a group that does Jan van Haasteren (JvH) jigsaw puzzles and keeps their times. It shows every puzzle, who owns which box and who did it in what time, statistics and fun facts, a random-puzzle generator, and a password-protected page to log times and update the collection. All data lives in a Google Sheet (*Jan van Haasteren Puzzel Collectie 3.0*). The site is **Dutch only** and **always dark** (navy, after the logo).
+puzzullu.funkyorbit.nl: the website of Puzzullu, a group that does Jan van Haasteren (JvH) jigsaw puzzles and keeps their times. It shows every puzzle, who owns which box and who did it in what time, statistics and fun facts, a random-puzzle generator, and a password-protected page to log times and update the collection. All data lives in a Google Sheet (*Jan van Haasteren Puzzel Collectie 3.0*). The site is **Dutch only** and **always dark** (the blue of the logo).
 
 The full specification is `SPEC.local.md` (gitignored, so it may be missing in a fresh clone). It follows the same architecture as `pietvansteen/funkyorbit`.
 
@@ -48,7 +48,7 @@ Google Sheet ──CSV──> sync/sync.py (daily, or at once on data/sync-now) 
   - `data.json` keys: `updated, layout, afbeeldingen` (id, en, nl, tekenaar, jaar, rating, bron, jvhUrl, opmerking), `exemplaren` (id, afbeelding, stukjes, eigenaar, volgnummer, missend, weg), `logs` (id, exemplaar, sec, datum ISO, makers sorted, missend, gefilmd, video; oldest first), `nk` (puzzel, afbeelding, jaar, sec, categorie, ronde), `personen`. Written atomically; when nothing can be read the old file stays. The sync-now file may hold `{"log": "<id>"}`: the sync retries until that log is in Google's CSV export.
 - **api/api.py**: `GET /api/health`, `GET /api/auth`, `POST /api/sync`. Admin calls need `Authorization: Bearer <ADMIN_TOKEN>`; wrong passwords are limited to 10 per address per 15 minutes. The write actions to the Apps Script come in step 4.
 - **site/shared.js** (`window.PZ`): `esc`, `getal`, `tijd` (seconds → `u:mm:ss`), `datum` (ISO → `dd-mm-jjjj`), `sterren`, `data()` (cached fetch of `/data.json`). Each page has its own folder and script; the overview is `/` (`overzicht.js`), release notes `/wat-is-nieuw/` (renders `changelog.json`). Still to come: `/statistieken/`, `/generator/`, `/loggen/` (admin, noindex, "Loggen" in the menu only on devices with the password in `localStorage`).
-- `site/logo.svg` is a placeholder until the real logo arrives; it is also the favicon.
+- `site/logo.svg` is the temporary logo from Piet (white piece and letters on `#2a3c9a`); it is also the favicon. The site palette follows its blue. The background pieces are the logo's piece in a data URI in `style.css`, each with its own size and rotation.
 
 ## Domain rules (easy to get wrong)
 
@@ -76,7 +76,7 @@ Google Sheet ──CSV──> sync/sync.py (daily, or at once on data/sync-now) 
 4. Apps Script `Puzzullu.gs` + `api.py` write actions + Loggen & beheer → `0.4.0`
 5. Generator → `0.5.0`
 6. Statistics + NK comparison → `0.6.0`
-7. Design finishing, logo → `1.0.0`
+7. Design finishing, final logo → `1.0.0`
 8. Deploy on the NAS
 
 ## Other notes

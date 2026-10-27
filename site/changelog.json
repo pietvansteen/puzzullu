@@ -1,6 +1,9 @@
 [
- {"version": "0.1.0", "date": "2026-10-27", "changes": [
+ {"version": "0.1.0",
+  "date": "2026-10-27",
+  "changes": [
   "De eerste versie van Puzzullu: de site haalt elke dag de puzzels, eigenaren en tijden op uit onze Sheet.",
+  "Het Puzzullu-logo, met de blauwe kleur ervan als basis voor de site, en puzzelstukjes in de achtergrond.",
   "De voorpagina toont alvast de totalen. Het volledige overzicht komt in een volgende versie.",
   "Onderaan elke pagina staat het versienummer met een link naar Wat is nieuw."
  ]}
