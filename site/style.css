@@ -1,12 +1,12 @@
-/* Puzzullu: the blue of the logo, cream text, one yellow accent (stars, buttons). Mobile first. */
+/* Puzzullu: navy like the logo, cream text, one yellow accent (stars, buttons). Mobile first. */
 :root {
   color-scheme: dark;
-  --paper: #1a2768;
-  --surface: #22338a;
-  --surface-2: #2a3e9e;
+  --paper: #0f1f3f;
+  --surface: #172b52;
+  --surface-2: #1e3563;
   --ink: #fbf6ea;
-  --muted: #b7c0e4;
-  --line: #3a4eae;
+  --muted: #a9b5cf;
+  --line: #2a4274;
   --accent: #ffc845;     /* stars, buttons */
   --accent-ink: #1a1a1a;
 
