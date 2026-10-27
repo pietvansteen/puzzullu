@@ -1,0 +1,54 @@
+# Puzzullu: website, daily sync and API (docker compose up -d)
+# Reachable through the existing Cloudflare Tunnel of funkyorbit: that cloudflared container joins the
+# external network "tunnel" (once: sudo docker network create tunnel) and the public hostname points to
+# http://puzzullu-web:80. Puzzullu has no cloudflared of its own.
+services:
+  web:
+    image: nginx:1.27-alpine
+    container_name: puzzullu-web   # unique: funkyorbit's nginx service is also called "web"
+    restart: unless-stopped
+    ports:
+      - "8089:80"            # local address: http://<host>:8089
+    volumes:
+      - ./site:/usr/share/nginx/html:ro
+      - ./web/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./data:/data:ro
+    networks: [default, tunnel]
+    depends_on: [api]
+
+  sync:
+    image: python:3.13-alpine
+    restart: unless-stopped
+    command: ["python", "-u", "/app/sync.py"]
+    environment:
+      SHEET_ID: "1vjYevi2UsbTKv6OzcFz99j65SVbGRbZt_eLIciEVIHA"   # Jan van Haasteren Puzzel Collectie 3.0
+      COLLECTIE_GID: "319446101"     # Puzzel Collectie 2.0 (old layout)
+      UITGAVES_GID: "2072732625"     # Alle uitgaves JvH (old layout)
+      NK_GID: "1005578444"           # Voorronde/finale tijden
+      AFBEELDINGEN_GID: ""           # new tabs, filled in after the migration
+      EXEMPLAREN_GID: ""
+      LOGS_GID: ""
+      INTERVAL: "86400"      # once a day; at once after a change on /loggen/
+      OUT_FILE: /data/data.json
+      TZ: Europe/Amsterdam
+    volumes:
+      - ./sync:/app:ro
+      - ./data:/data
+
+  api:
+    image: python:3.13-alpine
+    restart: unless-stopped
+    command: ["python", "-u", "/app/api.py"]
+    environment:
+      DATA_FILE: /data/data.json
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}                # password for /loggen/, from .env
+      SHEET_WRITE_URL: ${SHEET_WRITE_URL:-}        # Apps Script web app (apps-script/Puzzullu.gs), from .env
+      SHEET_WRITE_SECRET: ${SHEET_WRITE_SECRET:-}  # its SECRET script property, from .env
+      TZ: Europe/Amsterdam
+    volumes:
+      - ./api:/app:ro
+      - ./data:/data
+
+networks:
+  tunnel:
+    external: true

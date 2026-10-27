@@ -1,0 +1,144 @@
+/* Puzzullu: navy like the logo, cream text, one yellow accent (stars, buttons). Mobile first. */
+:root {
+  color-scheme: dark;
+  --paper: #0f1f3f;
+  --surface: #172b52;
+  --surface-2: #1e3563;
+  --ink: #fbf6ea;
+  --muted: #a9b5cf;
+  --line: #2a4274;
+  --accent: #ffc845;     /* stars, buttons */
+  --accent-ink: #1a1a1a;
+
+  --f-display: "Fredoka", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius: 16px;
+  --max: 960px;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+input, select, textarea { font-size: max(16px, 1em); }
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--paper);
+  /* faint puzzle pieces in the background */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cpath transform='translate(48 48) rotate(12)' fill='none' stroke='%23ffffff' stroke-opacity='.035' stroke-width='2' d='M-10 -9H-3.5a4.5 4.5 0 1 1 7 0H10V-3.5a4.5 4.5 0 1 1 0 7V10H-10V3.5a4.5 4.5 0 1 0 0-7Z'/%3E%3C/svg%3E");
+  color: var(--ink);
+  font: 16px/1.55 var(--f-body);
+  -webkit-font-smoothing: antialiased;
+}
+[hidden] { display: none !important; }
+a { color: var(--accent); }
+.wrap {
+  width: 100%;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main.wrap { flex: 1; }
+.muted { color: var(--muted); }
+
+/* ---------- header and menu ---------- */
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 20px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  text-decoration: none;
+  font: 600 1.45rem/1 var(--f-display);
+  letter-spacing: .01em;
+}
+.brand img { border-radius: 10px; }
+.nav { display: flex; flex-wrap: wrap; gap: 4px; }
+.nav a, .nav span {
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--ink);
+  text-decoration: none;
+  font: 500 .98rem/1.2 var(--f-display);
+}
+.nav a:hover { background: var(--surface); }
+.nav a[aria-current="page"] { background: var(--surface-2); }
+.nav .soon { color: var(--muted); opacity: .6; cursor: default; }
+
+/* ---------- headings and tiles ---------- */
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; line-height: 1.15; margin: 0 0 .4em; }
+h1 { font-size: clamp(1.9rem, 6vw, 2.6rem); }
+h2 { font-size: 1.35rem; }
+.hero { padding: 18px 0 8px; }
+.hero p { margin: 0; color: var(--muted); max-width: 40em; }
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 22px 0;
+  padding: 0;
+  list-style: none;
+}
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.tile b { display: block; font: 600 1.8rem/1.1 var(--f-display); }
+.tile span { color: var(--muted); font-size: .92rem; }
+
+.note {
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  color: var(--muted);
+}
+.empty { color: var(--muted); }
+
+/* ---------- What's new ---------- */
+.changes { display: grid; gap: 14px; margin: 18px 0 30px; }
+.release {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+}
+.release header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.release h2 { margin: 0; }
+.release time { color: var(--muted); }
+.release .now {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 999px;
+  padding: 1px 10px;
+  font: 600 .8rem/1.6 var(--f-display);
+}
+.release ul { margin: 8px 0 0; padding-left: 1.2em; }
+.release li { margin: 3px 0; }
+
+/* ---------- footer ---------- */
+footer.wrap {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 16px;
+  padding-top: 26px;
+  padding-bottom: max(22px, env(safe-area-inset-bottom, 0px));
+  color: var(--muted);
+  font-size: .9rem;
+}
+footer a { color: var(--muted); }

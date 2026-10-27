@@ -1,0 +1,7 @@
+[
+ {"version": "0.1.0", "date": "2026-10-27", "changes": [
+  "De eerste versie van Puzzullu: de site haalt elke dag de puzzels, eigenaren en tijden op uit onze Sheet.",
+  "De voorpagina toont alvast de totalen. Het volledige overzicht komt in een volgende versie.",
+  "Onderaan elke pagina staat het versienummer met een link naar Wat is nieuw."
+ ]}
+]

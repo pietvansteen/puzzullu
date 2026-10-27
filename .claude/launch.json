@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "puzzullu",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["tools/dev.py"],
+      "port": 8091
+    }
+  ]
+}

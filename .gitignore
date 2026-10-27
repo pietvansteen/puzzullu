@@ -1,6 +1,8 @@
-.env
-*.local.md
-data/
+data/*
 !data/.gitkeep
+testdata/*.csv
+.env
+*.tmp
 __pycache__/
 .DS_Store
+*.local.md
