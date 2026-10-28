@@ -79,6 +79,16 @@ Na een wijziging in `Puzzullu.gs`: *Implementeren > Implementaties beheren*, bew
 
 Met de Apps Script voegt de sync ook nieuwe puzzels van de JvH-site toe aan het tabblad Afbeeldingen.
 
+## Veiligheid
+
+- **Geen open poorten.** De site is alleen via de Cloudflare Tunnel bereikbaar; die maakt zelf een verbinding naar buiten. De tunnel stuurt alleen door naar de webserver (nginx), niet naar de rest van de NAS.
+- **De site zelf is alleen lezen.** nginx serveert vaste bestanden en `data.json`; de mappen zijn read-only in de containers.
+- **De API kan maar zes dingen**: een tijd, een doos, een doos weg, missende stukjes, een video-link en een rating. Elke invoer wordt streng gecontroleerd (vaste formaten voor tijd, datum, ID's en aantallen, namen zonder komma's en nooit beginnend met `= + - @`, links alleen `https://`). Er wordt nooit iets van de invoer uitgevoerd: geen shell, geen `eval`, geen database, geen uploads.
+- **Wachtwoord**: `ADMIN_TOKEN`, vergeleken in constante tijd; na 10 foute pogingen per adres een kwartier niets.
+- **Schrijven gebeurt bij Google, niet op de NAS.** De API stuurt een actie naar de Apps Script met een geheime sleutel (`SHEET_WRITE_SECRET`); de Apps Script kent alleen die zeven acties en kan geen rijen wissen.
+- **Gegevens uit de Sheet zijn tekst.** De sync leest de Sheet als CSV (formules worden niet uitgevoerd, alleen hun uitkomst als tekst), en de site toont alle tekst ge-escaped, dus een naam of titel kan geen code op de pagina worden.
+- **Geheimen staan alleen in `.env` op de server**, niet in git.
+
 ## Lokaal testen
 
 ```sh

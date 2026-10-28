@@ -246,10 +246,11 @@ function pzDate(iso) {
   return Utilities.parseDate(iso, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), "yyyy-MM-dd");
 }
 
-// names as the site writes them: trimmed, capital first, no doubles
+// names as the site writes them: trimmed, capital first, no doubles; never something Sheets reads as a formula
 function pzNames(list) {
   const seen = new Set();
   return (list || []).map((n) => String(n).replace(/\s+/g, " ").trim()).filter(Boolean)
+    .map((n) => { if (/^[=+\-@]/.test(n)) throw new Error("a name may not start with = + - @"); return n; })
     .map((n) => n.charAt(0).toUpperCase() + n.slice(1))
     .filter((n) => !seen.has(n.toLowerCase()) && seen.add(n.toLowerCase()))
     .sort((a, b) => a.localeCompare(b, "nl"));

@@ -51,7 +51,8 @@ KEY_RE = re.compile(r"^[a-z0-9%][a-z0-9%-]{0,120}$")  # afbeelding_id / exemplaa
 LOG_RE = re.compile(r"^L\d{1,6}$")
 TIME_RE = re.compile(r"^\d{1,3}:[0-5]\d:[0-5]\d$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-NAME_RE = re.compile(r"^[^\s,][^,]{0,39}$")
+# a name never starts with = + - @ (Sheets would read it as a formula) and has no comma (the list separator)
+NAME_RE = re.compile(r"^[^\s,=+\-@][^,]{0,39}$")
 
 
 def log(msg):
@@ -76,7 +77,7 @@ def names(value, what):
         raise Invalid(f"Kies minstens één {what}.")
     out = [" ".join(str(n).split()) for n in value]
     if any(not NAME_RE.match(n) for n in out):
-        raise Invalid(f"Een naam bij {what} klopt niet (geen komma's, hooguit 40 tekens).")
+        raise Invalid(f"Een naam bij {what} klopt niet (geen komma's, niet beginnen met = + - @, hooguit 40 tekens).")
     return out
 
 
