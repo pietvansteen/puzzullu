@@ -454,6 +454,7 @@ legend { padding: 0; margin-bottom: 6px; font: 500 .95rem/1.3 var(--f-display); 
 }
 .release ul { margin: 8px 0 0; padding-left: 1.2em; }
 .release li { margin: 3px 0; }
+.release a.stil { color: inherit; text-decoration: none; cursor: inherit; }
 
 /* ---------- footer ---------- */
 footer.wrap {

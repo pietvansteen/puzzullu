@@ -5,8 +5,10 @@
   const { esc } = window.PZ;
   const box = document.getElementById("changes");
 
-  // a line may link a word to a page of the site, markdown style: "de [generator](/generator/) kan nu …"
-  const regel = (c) => esc(c).replace(/\[([^\]]+)\]\((\/[\w\/-]*)\)/g, '<a href="$2">$1</a>');
+  // a line may link a word to a page of the site, markdown style: "de [generator](/generator/) kan nu …";
+  // a link to /loggen/ looks like the rest of the text: it is how we reach that page without typing the address
+  const regel = (c) => esc(c).replace(/\[([^\]]+)\]\((\/[\w\/-]*)\)/g,
+    (m, tekst, pad) => `<a${pad.startsWith("/loggen") ? ' class="stil"' : ""} href="${pad}">${tekst}</a>`);
   const dag = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
 
   fetch("/changelog.json", { cache: "no-cache" })
