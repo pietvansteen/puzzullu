@@ -165,7 +165,20 @@
     lijst.addEventListener("toggle", (ev) => {
       const id = ev.target.dataset && ev.target.dataset.id;
       if (id) ev.target.open ? open.add(id) : open.delete(id);
+      uitklapLabel();
     }, true);
+    // open (or close) every picture and version in the list, to see all times at once
+    $("uitklap").addEventListener("click", () => {
+      const alles = [...lijst.querySelectorAll("details[data-id]")];
+      const dicht = alles.some((d) => !d.open);
+      for (const d of alles) d.open = dicht;
+    });
+  }
+
+  function uitklapLabel() {
+    const alles = lijst.querySelectorAll("details[data-id]");
+    $("uitklap").hidden = !alles.length;
+    $("uitklap").textContent = [...alles].some((d) => !d.open) ? "Laat alle tijden zien" : "Alles inklappen";
   }
 
   function wijzig() {
@@ -248,6 +261,7 @@
     lijst.innerHTML = zichtbaar.length
       ? zichtbaar.map(puzzel).join("")
       : `<li class="empty">Geen puzzels gevonden${aantalFilters ? " met deze filters" : ""}.</li>`;
+    uitklapLabel();
   }
 
   function puzzel({ a, vs, n }) {
