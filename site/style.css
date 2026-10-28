@@ -250,6 +250,7 @@ legend { padding: 0; margin-bottom: 6px; font: 500 .95rem/1.3 var(--f-display); 
 .pz-naam b { font: 600 1.12rem/1.25 var(--f-display); }
 .pz-naam .meta { color: var(--muted); font-size: .9rem; }
 .pz-naam small { display: block; color: var(--muted); font-size: .9rem; }
+.pz-naam .noot { color: var(--accent); font-size: .85rem; }
 .pz-rechts { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .stars { width: 5.6em; text-align: right; color: var(--accent); letter-spacing: 1px; white-space: nowrap; }
 .n {

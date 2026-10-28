@@ -64,6 +64,8 @@ JVH_SCRAPE = os.environ.get("JVH_SCRAPE", "1") != "0"
 SHEET_WRITE_URL = os.environ.get("SHEET_WRITE_URL", "")
 SHEET_WRITE_SECRET = os.environ.get("SHEET_WRITE_SECRET", "")
 JVH_MAX_AGE = 20 * 3600  # fetch the catalogue at most about once a day
+NAMEN_FILE = os.path.join(os.path.dirname(os.path.abspath(JVH_FILE)), "jvh-namen.json")
+NAMEN_MAX_AGE = 7 * 24 * 3600  # the other names from the detail pages (about 320 pages): once a week
 
 EXPORT_URL = "https://docs.google.com/spreadsheets/d/{sheet}/export?format=csv&gid={gid}"
 NEW_TABS = ("AFBEELDINGEN", "EXEMPLAREN", "LOGS")
@@ -316,6 +318,31 @@ def update_jvh(force=False):
         f"({cat['combi']} combo boxes left out) -> {JVH_FILE}")
 
 
+def update_namen(force=False):
+    """The other names of each picture from JvH's detail pages into NAMEN_FILE, once a week (or when asked).
+    Returns True when the file changed. Keeps the old file on errors."""
+    if not JVH_SCRAPE:
+        return False
+    try:
+        if not force and time.time() - os.path.getmtime(NAMEN_FILE) < NAMEN_MAX_AGE:
+            return False
+    except OSError:
+        pass  # not fetched yet
+    try:
+        with open(JVH_FILE, encoding="utf-8") as f:
+            cat = json.load(f)["afbeeldingen"]
+    except (OSError, ValueError, KeyError):
+        return False
+    try:
+        names = jvh.namen(cat)
+    except Exception as e:
+        log(f"ERROR: JvH names: {e}; keeping the old ones")
+        return False
+    write_atomic({"updated": datetime.now(timezone.utc).isoformat(timespec="seconds"), "namen": names}, NAMEN_FILE)
+    log(f"JvH names: {sum(len(v) for v in names.values())} other names for {len(names)} pictures -> {NAMEN_FILE}")
+    return True
+
+
 def add_catalogue(afbeeldingen):
     """Known piece counts and JvH links from the catalogue; returns the catalogue pictures the Sheet does not have."""
     try:
@@ -327,13 +354,34 @@ def add_catalogue(afbeeldingen):
     for c in cat:
         for k in (name_key(c["nl"]), name_key(c["en"])):
             by_key.setdefault(k, c)
-    seen = set()
+    try:
+        with open(NAMEN_FILE, encoding="utf-8") as f:
+            other = json.load(f)["namen"]
+    except (OSError, ValueError, KeyError):
+        other = {}
+    seen, sheet_of = set(), {}
     for a in afbeeldingen:
         c = by_id.get(a["id"]) or by_key.get(name_key(a["en"])) or by_key.get(name_key(a["nl"]))
         a["versies"] = c["versies"] if c else []
+        a["namen"], a["verwant"] = [], []
         if c:
             seen.add(c["id"])
+            sheet_of[c["id"]] = a
             a["jvhUrl"] = a["jvhUrl"] or c["jvhUrl"]
+            a["namen"] = [n for n in other.get(c["id"], []) if n not in (a["en"], a["nl"]) and not jvh.is_combo_name(n)]
+    # a name on one picture's page that is another picture's title links the two (Grand Prix <-> Nog één rondje Zandvoort)
+    sheet_key = {}
+    for a in afbeeldingen:
+        for k in (name_key(a["nl"]), name_key(a["en"])):
+            sheet_key.setdefault(k, a)
+    for a in afbeeldingen:
+        for n in a["namen"]:
+            b = sheet_key.get(name_key(n))
+            if b and b is not a:
+                if b["id"] not in a["verwant"]:
+                    a["verwant"].append(b["id"])
+                if a["id"] not in b["verwant"]:
+                    b["verwant"].append(a["id"])
     return [c for c in cat if c["id"] not in seen]
 
 
@@ -455,6 +503,12 @@ def main():
                 if INTERVAL == 0:
                     sys.exit(1)
             time.sleep(5)
+        # the other names (weekly, slow): after the sync, so a new log never waits for it
+        if update_namen(force=bool(asked and asked.get("jvh"))):
+            try:
+                sync_once()
+            except Exception as e:
+                log(f"ERROR: {e}")
         if INTERVAL == 0:
             break
         asked = wait()

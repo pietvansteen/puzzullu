@@ -56,6 +56,8 @@
       ...a,
       naam: a.en || a.nl,
       zoek: `${a.en} ${a.nl}`.toLowerCase(),
+      zoekNamen: (a.namen || []).map((n) => [n, n.toLowerCase()]),
+      verwant: a.verwant || [],
       exemplaren: (exPer[a.id] || []).sort((x, y) => x.eigenaren.join().localeCompare(y.eigenaren.join(), "nl")
         || x.volgnummer - y.volgnummer),
     }));
@@ -226,9 +228,10 @@
     const groep = (l) => !st.groep.length || st.groep.includes(Math.min(l.makers.length, 5));
     const maker = (l) => wie(l) && groep(l);
     const zoek = st.zoek.trim().toLowerCase();
+    const treffers = zoeken(zoek);
     const zichtbaar = [];
     for (const a of D.afbeeldingen) {
-      if (zoek && !a.zoek.includes(zoek)) continue;
+      if (treffers && !treffers.has(a.id)) continue;
       const versies = new Map(); // stukjes -> [{ e, logs }]
       for (const e of a.exemplaren) {
         if (st.stukjes.length && !st.stukjes.includes(e.stukjes)) continue;
@@ -247,14 +250,16 @@
       }
       const vs = [...versies].sort((x, y) => (x[0] || 0) - (y[0] || 0));
       const n = vs.reduce((s, [, exs]) => s + exs.reduce((t, x) => t + x.logs.length, 0), 0);
-      if (vs.length) zichtbaar.push({ a, vs, n });
+      const t = treffers && treffers.get(a.id);
+      if (vs.length) zichtbaar.push({ a, vs, n, t });
       else if (st.alles && !a.exemplaren.length && !st.eigenaren.length && !logFilter
-        && (!st.stukjes.length || a.versies.some((v) => st.stukjes.includes(v)))) zichtbaar.push({ a, vs, n: 0 });
+        && (!st.stukjes.length || a.versies.some((v) => st.stukjes.includes(v)))) zichtbaar.push({ a, vs, n: 0, t });
     }
     if (st.sort !== "az") {
       const r = st.sort === "minst" ? 1 : -1;
       zichtbaar.sort((x, y) => r * (x.n - y.n)); // stable: same count stays alphabetical
     }
+    if (treffers) zichtbaar.sort((x, y) => x.t.rang - y.t.rang); // title first, then other names, then related
 
     $("count").textContent = zichtbaar.length === 1 ? "1 puzzel" : `${getal(zichtbaar.length)} puzzels`;
     lijst.classList.toggle("met-rating", st.rating);
@@ -264,10 +269,33 @@
     uitklapLabel();
   }
 
-  function puzzel({ a, vs, n }) {
+  // search: in the titles, in the other names JvH sold the picture under, and the pictures related to those hits
+  // -> null without a search term, else Map(id -> {rang 0/1/2, noot})
+  function zoeken(q) {
+    if (!q) return null;
+    const hits = new Map();
+    for (const a of D.afbeeldingen) {
+      if (a.zoek.includes(q)) hits.set(a.id, { rang: 0, noot: "" });
+      else {
+        const naam = a.zoekNamen.find(([, k]) => k.includes(q));
+        if (naam) hits.set(a.id, { rang: 1, noot: `ook: ${naam[0]}` });
+      }
+    }
+    const naam = Object.fromEntries(D.afbeeldingen.map((a) => [a.id, a]));
+    for (const [id, h] of [...hits]) {
+      if (h.rang === 2) continue;
+      for (const v of naam[id].verwant) {
+        if (!hits.has(v)) hits.set(v, { rang: 2, noot: `verwant aan ${naam[id].naam}` });
+      }
+    }
+    return hits;
+  }
+
+  function puzzel({ a, vs, n, t }) {
     const meta = st.tekenaar && (a.tekenaar || a.jaar)
       ? ` <span class="meta">(${esc([a.tekenaar, a.jaar].filter(Boolean).join(", "))})</span>` : "";
-    const nl = a.nl && a.nl !== a.naam ? `<small>${esc(a.nl)}</small>` : "";
+    const nl = (a.nl && a.nl !== a.naam ? `<small>${esc(a.nl)}</small>` : "")
+      + (t && t.noot ? `<small class="noot">${esc(t.noot)}</small>` : "");
     // stars and count always take their place, so the columns line up
     const rating = st.rating
       ? `<span class="stars"${a.rating ? ` title="Moeilijkheid ${a.rating} van 5" aria-label="Moeilijkheid ${a.rating} van 5"` : ""}>${sterren(a.rating)}</span>` : "";

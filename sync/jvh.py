@@ -10,11 +10,17 @@ are left out as a picture of their own (their title has "/" or "&" between the n
 gets the piece counts of its editions ("versies"); an XXXL edition ("De Storm - XXXL") counts as a version
 of its picture.
 
-Standard library only. Used by sync.py (daily) and tools/migratie.py.
+namen() reads the detail page of each picture: it lists every product based on that picture, often under
+another name (Grand Prix is also sold as "Nog één rondje Zandvoort"). Those names make the search find the
+picture, and link it to other pictures with that name ("verwant").
+
+Standard library only. Used by sync.py (catalogue daily, names weekly) and tools/migratie.py.
 """
 
+import html
 import html.parser
 import re
+import time
 import unicodedata
 import urllib.request
 
@@ -102,6 +108,45 @@ def base_titles(row):
         titles.append(re.sub(r"\s*-?\s*XXXL$", "", t, flags=re.I))
         titles.append(t.split("/")[0])
     return [t for t in titles if t.strip()]
+
+
+PRODUCT_RE = re.compile(r'<div class="info-first">\s*<h2>(.*?)</h2>\s*<div class="naam_andere_taal">(.*?)</div>', re.S)
+
+
+def product_names(page):
+    """The names of the products on a picture's detail page: [name, name in the other language, ...]."""
+    out = []
+    for nl, en in PRODUCT_RE.findall(page):
+        for raw in (nl, re.sub(r"<[^>]+>", " ", en)):
+            name = " ".join(html.unescape(raw).split())
+            if name and not is_combo_name(name) and name not in out:  # combo boxes are not a name
+                out.append(name)
+    return out
+
+
+def is_combo_name(name):
+    """A combo box lists its pictures with "/" (also without spaces: "Het Vliegveld/De Lekkage") or " & "."""
+    return "/" in name or bool(re.search(r"\s&\s", name))
+
+
+def namen(afbeeldingen, delay=0.4):
+    """{picture id: [other names]} from the detail pages of the pictures of list 1 (bron jvh-afbeeldingen).
+    Raises RuntimeError when too many pages fail, so the caller keeps its old names."""
+    out, failed = {}, 0
+    pictures = [a for a in afbeeldingen if a["bron"] == "jvh-afbeeldingen" and a["jvhUrl"]]
+    for a in pictures:
+        try:
+            own = {name_key(a["nl"]), name_key(a["en"])}
+            names = [n for n in product_names(download(a["jvhUrl"]))
+                     if name_key(re.sub(r"\s*-?\s*XXXL$", "", n, flags=re.I)) not in own]
+            if names:
+                out[a["id"]] = names
+        except OSError:
+            failed += 1
+        time.sleep(delay)  # gently: one page at a time
+    if failed > len(pictures) / 4:
+        raise RuntimeError(f"{failed} of {len(pictures)} detail pages failed")
+    return out
 
 
 def catalogue(afbeeldingen_html=None, puzzels_html=None):

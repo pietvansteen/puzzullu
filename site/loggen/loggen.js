@@ -49,7 +49,7 @@
   // ---------------------------------------------------------------- data
 
   function voorbereiden(d) {
-    const afb = Object.fromEntries(d.afbeeldingen.map((a) => [a.id, { ...a, naam: a.en || a.nl, zoek: `${a.en} ${a.nl}`.toLowerCase() }]));
+    const afb = Object.fromEntries(d.afbeeldingen.map((a) => [a.id, { ...a, naam: a.en || a.nl, zoek: `${a.en} ${a.nl} ${(a.namen || []).join(" ")}`.toLowerCase() }]));
     const keer = {};
     for (const l of d.logs) for (const m of l.makers) keer[m] = (keer[m] || 0) + 1;
     return { ...d, afb, keer };
