@@ -8,16 +8,16 @@
 <style>html { background: #0f1f3f; color-scheme: dark; }</style>
 <title>Puzzullu · Onze Jan van Haasteren-puzzels</title>
 <meta name="description" content="Alle Jan van Haasteren-puzzels van Puzzullu: wie heeft welke, en hoe snel we ze gelegd hebben.">
-<link rel="icon" href="/logo.svg?v=0.3.0-d1883e" type="image/svg+xml">
+<link rel="icon" href="/logo.svg?v=0.3.0-e49546" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="/style.css?v=0.3.0-d1883e">
+<link rel="stylesheet" href="/style.css?v=0.3.0-e49546">
 </head>
 <body>
 <header class="wrap top">
   <a class="brand" href="/" aria-label="Puzzullu, overzicht">
-    <img src="/logo.svg?v=0.3.0-d1883e" width="44" height="44" alt="">
+    <img src="/logo.svg?v=0.3.0-e49546" width="44" height="44" alt="">
     <span>Puzzullu</span>
   </a>
   <nav class="nav" aria-label="Pagina's">
@@ -52,6 +52,8 @@
             <input type="range" id="f-van" min="0" step="1" aria-label="Langer dan">
             <input type="range" id="f-tot" min="0" step="1" aria-label="Sneller dan">
           </div>
+          <label class="optie" id="snelste-optie" hidden><input type="checkbox" id="snelste"> Alleen de snelste tijd per versie telt
+            <small>Bijvoorbeeld met "langer dan 1:00:00": de versies die nog nooit onder het uur zijn gelegd, ook als ze nog niet gelegd zijn.</small></label>
         </fieldset>
         <div class="row">
           <label class="select">Sorteren
@@ -78,7 +80,7 @@
 </main>
 
 <footer class="wrap"><span>Puzzullu</span> <a class="version" href="/wat-is-nieuw/">v0.3.0 · Wat is nieuw</a></footer>
-<script src="/shared.js?v=0.3.0-d1883e"></script>
-<script src="/overzicht.js?v=0.3.0-d1883e"></script>
+<script src="/shared.js?v=0.3.0-e49546"></script>
+<script src="/overzicht.js?v=0.3.0-e49546"></script>
 </body>
 </html>

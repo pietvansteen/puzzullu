@@ -13,7 +13,7 @@
   const VAAK = 5; // makers with more logs than this are always shown; the rest behind "Meer namen"
   const OPSLAG = "pz-overzicht-v2";
   const standaard = { zoek: "", stukjes: [], eigenaren: [], makers: [], samen: false, alleMakers: false,
-    van: 0, tot: LAATSTE, sort: "az", tekenaar: false, rating: true, alles: false };
+    van: 0, tot: LAATSTE, snelste: false, sort: "az", tekenaar: false, rating: true, alles: false };
   let st = { ...standaard };
   try { st = { ...standaard, ...JSON.parse(localStorage.getItem(OPSLAG) || "{}"), zoek: "" }; } catch (e) { /* private window */ }
   // the search term is not remembered, the filters and checkboxes are
@@ -97,6 +97,7 @@
     $("f-van").max = $("f-tot").max = LAATSTE;
     $("f-van").value = st.van;
     $("f-tot").value = st.tot;
+    $("snelste").checked = st.snelste;
     $("zoek").value = st.zoek;
     $("sort").value = st.sort;
     $("toon-tekenaar").checked = st.tekenaar;
@@ -149,6 +150,7 @@
       wijzig();
     });
     for (const id of ["samen", "los"]) $(id).addEventListener("change", () => { st.samen = $("samen").checked; wijzig(); });
+    $("snelste").addEventListener("change", () => { st.snelste = $("snelste").checked; wijzig(); });
     $("sort").addEventListener("change", () => { st.sort = $("sort").value; wijzig(); });
     for (const [id, key] of [["toon-tekenaar", "tekenaar"], ["toon-rating", "rating"], ["toon-alles", "alles"]]) {
       $(id).addEventListener("change", () => { st[key] = $(id).checked; wijzig(); });
@@ -187,6 +189,11 @@
     range.style.setProperty("--van", st.van / LAATSTE);
     range.style.setProperty("--tot", st.tot / LAATSTE);
     const tijdFilter = van != null || tot != null;
+    $("snelste-optie").hidden = !tijdFilter;
+    // "fastest time counts": the time filter looks at the best time of each version (of the chosen makers),
+    // so "longer than 1:00:00" finds versions never done under the hour, including versions not done yet
+    const perVersie = tijdFilter && st.snelste;
+    const binnen = (sec) => (van == null || sec >= van) && (tot == null || sec < tot);
     const aantalFilters = (st.stukjes.length > 0) + (st.eigenaren.length > 0) + (st.makers.length > 0) + tijdFilter;
     $("nfilters").textContent = aantalFilters ? `(${aantalFilters})` : "";
     $("wis").hidden = !aantalFilters && !st.zoek;
@@ -201,11 +208,17 @@
       for (const e of a.exemplaren) {
         if (st.stukjes.length && !st.stukjes.includes(e.stukjes)) continue;
         if (st.eigenaren.length && !e.eigenaren.some((p) => st.eigenaren.includes(p))) continue;
-        const logs = e.logs.filter((l) => maker(l) && (!tijdFilter
-          || (l.sec != null && (van == null || l.sec >= van) && (tot == null || l.sec < tot))));
-        if (logFilter && !logs.length) continue;
+        const logs = e.logs.filter((l) => maker(l) && (!tijdFilter || perVersie || (l.sec != null && binnen(l.sec))));
+        if (logFilter && !perVersie && !logs.length) continue;
         if (!versies.has(e.stukjes)) versies.set(e.stukjes, []);
         versies.get(e.stukjes).push({ e, logs });
+      }
+      if (perVersie) {
+        for (const [stukjes, exs] of versies) {
+          const tijden = exs.flatMap((x) => x.logs).map((l) => l.sec).filter((s) => s != null);
+          const best = tijden.length ? Math.min(...tijden) : null;
+          if (best == null ? van == null : !binnen(best)) versies.delete(stukjes);
+        }
       }
       const vs = [...versies].sort((x, y) => (x[0] || 0) - (y[0] || 0));
       const n = vs.reduce((s, [, exs]) => s + exs.reduce((t, x) => t + x.logs.length, 0), 0);
