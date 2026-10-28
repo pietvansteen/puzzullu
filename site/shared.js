@@ -43,7 +43,7 @@
   const nav = document.querySelector(".nav");
   if (nav && admin.get() && !nav.querySelector('a[href="/loggen/"]')) {
     const here = location.pathname.startsWith("/loggen");
-    nav.insertAdjacentHTML("beforeend", `<a href="/loggen/"${here ? ' aria-current="page"' : ""}>Loggen 🔒</a>`);
+    nav.insertAdjacentHTML("beforeend", `<a href="/loggen/"${here ? ' aria-current="page"' : ""}>Loggen</a>`);
   }
 
   window.PZ = { esc, getal: (n) => getal.format(n), tijd, datum, sterren, data, admin };

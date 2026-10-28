@@ -1,4 +1,10 @@
 [
+ {"version": "0.4.2",
+  "date": "2026-10-28",
+  "changes": [
+  "Puzzullu is als app te installeren op je telefoon: in Chrome via Installeren, op de iPhone in Safari via Deel en dan Zet op beginscherm.",
+  "In het menu staat gewoon Loggen, zonder slotje."
+ ]},
  {"version": "0.4.1",
   "date": "2026-10-28",
   "changes": [
