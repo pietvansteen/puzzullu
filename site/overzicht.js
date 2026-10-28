@@ -1,4 +1,4 @@
-/* Puzzullu — overview page: totals, then every picture once in three levels (picture > boxes > times),
+/* Puzzullu — overview page: totals, then every picture once in three levels (picture > versions > times),
    with search, filters and sorting. Settings are remembered per device (localStorage). */
 (function () {
   "use strict";
@@ -7,11 +7,13 @@
   const $ = (id) => document.getElementById(id);
   const lijst = $("lijst");
 
-  // steps of the "faster than" slider, in seconds; the last step is "no limit"
-  const TIJDEN = [900, 1800, 2700, 3600, 4500, 5400, 6300, 7200, 9000, 10800, 14400, 21600, 43200, null];
-  const OPSLAG = "pz-overzicht";
-  const standaard = { zoek: "", stukjes: [], eigenaren: [], makers: [], tijd: TIJDEN.length - 1, sort: "az",
-    tekenaar: false, rating: false, alles: false };
+  // steps of the time slider, in seconds; the first step is "no lower limit", the last "no upper limit"
+  const TIJDEN = [0, 900, 1800, 2700, 3600, 4500, 5400, 6300, 7200, 9000, 10800, 14400, 21600, 43200, null];
+  const LAATSTE = TIJDEN.length - 1;
+  const VAAK = 5; // makers with more logs than this are always shown; the rest behind "Meer namen"
+  const OPSLAG = "pz-overzicht-v2";
+  const standaard = { zoek: "", stukjes: [], eigenaren: [], makers: [], samen: false, alleMakers: false,
+    van: 0, tot: LAATSTE, sort: "az", tekenaar: false, rating: true, alles: false };
   let st = { ...standaard };
   try { st = { ...standaard, ...JSON.parse(localStorage.getItem(OPSLAG) || "{}"), zoek: "" }; } catch (e) { /* private window */ }
   // the search term is not remembered, the filters and checkboxes are
@@ -21,7 +23,7 @@
   const ICON_YOUTUBE = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.3 5 12 5 12 5s-6.3 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.7 19 12 19 12 19s6.3 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8ZM10 15V9l5.2 3Z"/></svg>';
 
   let D = null;          // data.json, prepared below
-  const open = new Set(); // ids of opened pictures and boxes, so a re-render keeps them open
+  const open = new Set(); // ids of opened pictures and versions, so a re-render keeps them open
 
   data()
     .then((d) => {
@@ -51,14 +53,17 @@
       ...a,
       naam: a.en || a.nl,
       zoek: `${a.en} ${a.nl}`.toLowerCase(),
-      exemplaren: (exPer[a.id] || []).sort((x, y) => (x.stukjes || 0) - (y.stukjes || 0)
-        || x.eigenaren.join().localeCompare(y.eigenaren.join(), "nl") || x.volgnummer - y.volgnummer),
+      exemplaren: (exPer[a.id] || []).sort((x, y) => x.eigenaren.join().localeCompare(y.eigenaren.join(), "nl")
+        || x.volgnummer - y.volgnummer),
     }));
     afbeeldingen.sort((x, y) => x.naam.localeCompare(y.naam, "nl", { sensitivity: "base" }));
+    // the filters are built from the data, so a new piece count or person shows up by itself
     const stukjes = [...new Set(d.exemplaren.map((e) => e.stukjes).filter(Boolean))].sort((x, y) => x - y);
     const eigenaren = [...new Set(d.exemplaren.flatMap((e) => e.eigenaren))].sort((x, y) => x.localeCompare(y, "nl"));
-    const makers = [...new Set(d.logs.flatMap((l) => l.makers))].sort((x, y) => x.localeCompare(y, "nl"));
-    return { afbeeldingen, stukjes, eigenaren, makers, updated: d.updated };
+    const keer = {};
+    for (const l of d.logs) for (const m of l.makers) keer[m] = (keer[m] || 0) + 1;
+    const makers = Object.keys(keer).sort((x, y) => keer[y] - keer[x] || x.localeCompare(y, "nl"));
+    return { afbeeldingen, stukjes, eigenaren, makers, keer };
   }
 
   function totalen(d) {
@@ -67,8 +72,9 @@
     const tegels = [
       [inBezit.length, "puzzels in bezit"],
       [new Set(inBezit.map((e) => e.afbeelding)).size, "verschillende afbeeldingen"],
-      [d.logs.length, "keer gelegd"],
-      [d.logs.reduce((n, l) => n + stukjesPer[l.exemplaar], 0), "stukjes gelegd"],
+      [d.logs.length, "puzzels gelegd"],
+      // pieces actually put in place: minus the missing ones, when we know how many
+      [d.logs.reduce((n, l) => n + Math.max(0, stukjesPer[l.exemplaar] - (l.missend || 0)), 0), "stukjes gelegd"],
     ];
     $("tiles").innerHTML = tegels.map(([n, label]) => `<li class="tile"><b>${esc(getal(n))}</b><span>${esc(label)}</span></li>`).join("");
     const t = new Date(d.updated);
@@ -78,17 +84,19 @@
 
   // ---------------------------------------------------------------- filters
 
+  const chip = (key, v, label = v, extra = "") =>
+    `<button type="button" class="chip" data-key="${key}" data-v="${esc(v)}" aria-pressed="${st[key].includes(v)}"${extra}>${esc(label)}</button>`;
+
   function bouwFilters() {
-    const chips = (el, waarden, key, label = (v) => v) => {
+    for (const [key, waarden] of [["stukjes", D.stukjes], ["eigenaren", D.eigenaren], ["makers", D.makers]]) {
       st[key] = st[key].filter((v) => waarden.includes(v)); // a remembered name may be gone
-      $(el).innerHTML = waarden.map((v) =>
-        `<button type="button" class="chip" data-key="${key}" data-v="${esc(v)}" aria-pressed="${st[key].includes(v)}">${esc(label(v))}</button>`).join("");
-    };
-    chips("f-stukjes", D.stukjes, "stukjes");
-    chips("f-eigenaar", D.eigenaren, "eigenaren");
-    chips("f-makers", D.makers, "makers");
-    $("f-tijd").max = TIJDEN.length - 1;
-    $("f-tijd").value = st.tijd;
+    }
+    $("f-stukjes").innerHTML = D.stukjes.map((v) => chip("stukjes", v)).join("");
+    $("f-eigenaar").innerHTML = D.eigenaren.map((v) => chip("eigenaren", v)).join("");
+    makerChips();
+    $("f-van").max = $("f-tot").max = LAATSTE;
+    $("f-van").value = st.van;
+    $("f-tot").value = st.tot;
     $("zoek").value = st.zoek;
     $("sort").value = st.sort;
     $("toon-tekenaar").checked = st.tekenaar;
@@ -96,14 +104,32 @@
     $("toon-alles").checked = st.alles;
   }
 
+  // makers who did more than VAAK puzzles first (most first); the rest, unless chosen, behind "Meer namen"
+  function makerChips() {
+    const vaak = D.makers.filter((m) => D.keer[m] > VAAK || st.makers.includes(m));
+    const rest = D.makers.length - vaak.length;
+    const zichtbaar = st.alleMakers ? D.makers : vaak;
+    $("f-makers").innerHTML = zichtbaar.map((m) => chip("makers", m, m, ` title="${D.keer[m]} keer gelegd"`)).join("")
+      + (rest ? `<button type="button" class="chip meer" id="meer-makers">${st.alleMakers ? "Minder namen" : `Meer namen (${rest})`}</button>` : "");
+    $("makers-mode").hidden = st.makers.length < 2;
+    $("samen").checked = st.samen;
+    $("los").checked = !st.samen;
+  }
+
   function koppel() {
     document.querySelector(".filters").addEventListener("click", (ev) => {
+      if (ev.target.id === "meer-makers") {
+        st.alleMakers = !st.alleMakers;
+        makerChips();
+        return bewaar();
+      }
       const b = ev.target.closest(".chip");
       if (!b) return;
       const key = b.dataset.key;
       const v = key === "stukjes" ? Number(b.dataset.v) : b.dataset.v;
       st[key] = st[key].includes(v) ? st[key].filter((x) => x !== v) : [...st[key], v];
       b.setAttribute("aria-pressed", st[key].includes(v));
+      if (key === "makers") makerChips();
       wijzig();
     });
     let wacht = null;
@@ -111,17 +137,28 @@
       clearTimeout(wacht);
       wacht = setTimeout(() => { st.zoek = $("zoek").value; wijzig(); }, 120);
     });
-    $("f-tijd").addEventListener("input", () => { st.tijd = Number($("f-tijd").value); wijzig(); });
+    // two handles: "van" can't pass "tot" and the other way round
+    $("f-van").addEventListener("input", () => {
+      st.van = Math.min(Number($("f-van").value), st.tot - 1);
+      $("f-van").value = st.van;
+      wijzig();
+    });
+    $("f-tot").addEventListener("input", () => {
+      st.tot = Math.max(Number($("f-tot").value), st.van + 1);
+      $("f-tot").value = st.tot;
+      wijzig();
+    });
+    for (const id of ["samen", "los"]) $(id).addEventListener("change", () => { st.samen = $("samen").checked; wijzig(); });
     $("sort").addEventListener("change", () => { st.sort = $("sort").value; wijzig(); });
     for (const [id, key] of [["toon-tekenaar", "tekenaar"], ["toon-rating", "rating"], ["toon-alles", "alles"]]) {
       $(id).addEventListener("change", () => { st[key] = $(id).checked; wijzig(); });
     }
     $("wis").addEventListener("click", () => {
-      st = { ...st, zoek: "", stukjes: [], eigenaren: [], makers: [], tijd: TIJDEN.length - 1 };
+      st = { ...st, zoek: "", stukjes: [], eigenaren: [], makers: [], van: 0, tot: LAATSTE };
       bouwFilters();
       wijzig();
     });
-    // remember which pictures and boxes are open
+    // remember which pictures and versions are open
     lijst.addEventListener("toggle", (ev) => {
       const id = ev.target.dataset && ev.target.dataset.id;
       if (id) ev.target.open ? open.add(id) : open.delete(id);
@@ -133,33 +170,48 @@
     teken();
   }
 
+  function tijdLabel(van, tot) {
+    if (van == null && tot == null) return "alle tijden";
+    if (van == null) return `sneller dan ${tijd(tot)}`;
+    if (tot == null) return `langer dan ${tijd(van)}`;
+    return `tussen ${tijd(van)} en ${tijd(tot)}`;
+  }
+
   // ---------------------------------------------------------------- render
 
   function teken() {
-    const grens = TIJDEN[st.tijd];
-    $("tijd-out").textContent = grens == null ? "geen grens" : tijd(grens);
-    const aantalFilters = (st.stukjes.length > 0) + (st.eigenaren.length > 0) + (st.makers.length > 0) + (grens != null);
+    const van = st.van > 0 ? TIJDEN[st.van] : null;
+    const tot = TIJDEN[st.tot];
+    $("tijd-out").textContent = tijdLabel(van, tot);
+    const range = $("tijd-range");
+    range.style.setProperty("--van", st.van / LAATSTE);
+    range.style.setProperty("--tot", st.tot / LAATSTE);
+    const tijdFilter = van != null || tot != null;
+    const aantalFilters = (st.stukjes.length > 0) + (st.eigenaren.length > 0) + (st.makers.length > 0) + tijdFilter;
     $("nfilters").textContent = aantalFilters ? `(${aantalFilters})` : "";
     $("wis").hidden = !aantalFilters && !st.zoek;
 
-    const logFilter = st.makers.length > 0 || grens != null;
+    const logFilter = st.makers.length > 0 || tijdFilter;
+    const maker = st.samen ? (l) => st.makers.every((m) => l.makers.includes(m)) : (l) => !st.makers.length || st.makers.some((m) => l.makers.includes(m));
     const zoek = st.zoek.trim().toLowerCase();
     const zichtbaar = [];
     for (const a of D.afbeeldingen) {
       if (zoek && !a.zoek.includes(zoek)) continue;
-      const exs = [];
+      const versies = new Map(); // stukjes -> [{ e, logs }]
       for (const e of a.exemplaren) {
         if (st.stukjes.length && !st.stukjes.includes(e.stukjes)) continue;
         if (st.eigenaren.length && !e.eigenaren.some((p) => st.eigenaren.includes(p))) continue;
-        const logs = e.logs.filter((l) =>
-          st.makers.every((m) => l.makers.includes(m)) && (grens == null || (l.sec != null && l.sec < grens)));
+        const logs = e.logs.filter((l) => maker(l) && (!tijdFilter
+          || (l.sec != null && (van == null || l.sec >= van) && (tot == null || l.sec < tot))));
         if (logFilter && !logs.length) continue;
-        exs.push({ e, logs });
+        if (!versies.has(e.stukjes)) versies.set(e.stukjes, []);
+        versies.get(e.stukjes).push({ e, logs });
       }
-      const n = exs.reduce((s, x) => s + x.logs.length, 0);
-      if (exs.length) zichtbaar.push({ a, exs, n });
+      const vs = [...versies].sort((x, y) => (x[0] || 0) - (y[0] || 0));
+      const n = vs.reduce((s, [, exs]) => s + exs.reduce((t, x) => t + x.logs.length, 0), 0);
+      if (vs.length) zichtbaar.push({ a, vs, n });
       else if (st.alles && !a.exemplaren.length && !st.eigenaren.length && !logFilter
-        && (!st.stukjes.length || a.versies.some((v) => st.stukjes.includes(v)))) zichtbaar.push({ a, exs, n: 0 });
+        && (!st.stukjes.length || a.versies.some((v) => st.stukjes.includes(v)))) zichtbaar.push({ a, vs, n: 0 });
     }
     if (st.sort !== "az") {
       const r = st.sort === "minst" ? 1 : -1;
@@ -167,20 +219,22 @@
     }
 
     $("count").textContent = zichtbaar.length === 1 ? "1 puzzel" : `${getal(zichtbaar.length)} puzzels`;
+    lijst.classList.toggle("met-rating", st.rating);
     lijst.innerHTML = zichtbaar.length
       ? zichtbaar.map(puzzel).join("")
       : `<li class="empty">Geen puzzels gevonden${aantalFilters ? " met deze filters" : ""}.</li>`;
   }
 
-  function puzzel({ a, exs, n }) {
+  function puzzel({ a, vs, n }) {
     const meta = st.tekenaar && (a.tekenaar || a.jaar)
       ? ` <span class="meta">(${esc([a.tekenaar, a.jaar].filter(Boolean).join(", "))})</span>` : "";
     const nl = a.nl && a.nl !== a.naam ? `<small>${esc(a.nl)}</small>` : "";
-    const rating = st.rating && a.rating
-      ? `<span class="stars" title="Moeilijkheid ${a.rating} van 5" aria-label="Moeilijkheid ${a.rating} van 5">${sterren(a.rating)}</span>` : "";
-    const aantal = n ? `<span class="n" title="${n} keer gelegd">${n}×</span>` : "";
-    const binnen = exs.length
-      ? `<ul class="ex">${exs.map(exemplaar).join("")}</ul>`
+    // stars and count always take their place, so the columns line up
+    const rating = st.rating
+      ? `<span class="stars"${a.rating ? ` title="Moeilijkheid ${a.rating} van 5" aria-label="Moeilijkheid ${a.rating} van 5"` : ""}>${sterren(a.rating)}</span>` : "";
+    const aantal = `<span class="n"${n ? ` title="${n} keer gelegd"` : ' aria-hidden="true"'}>${n ? `${n}×` : ""}</span>`;
+    const binnen = vs.length
+      ? `<ul class="ex">${vs.map(([stukjes, exs]) => versie(a, stukjes, exs)).join("")}</ul>`
       : `<p class="leeg">Nog niet in onze collectie.${a.versies.length ? ` Bestaat in ${a.versies.join(", ")} stukjes.` : ""}</p>`;
     const extra = [
       a.opmerking ? `<span>${esc(a.opmerking)}</span>` : "",
@@ -191,26 +245,38 @@
       <div class="pz-body">${binnen}${extra ? `<p class="pz-extra">${extra}</p>` : ""}</div></details></li>`;
   }
 
-  function exemplaar({ e, logs }) {
-    const missend = e.missend == null ? " <span class=\"min\">(−?)</span>" : e.missend ? ` <span class="min">(−${e.missend})</span>` : "";
+  // a box as "Hanna² (−1)", "Simon (weg)" or "geen eigenaar"
+  function doos(e) {
     const nr = e.volgnummer > 1 ? `<sup>${e.volgnummer}</sup>` : "";
-    const wie = e.eigenaren.length ? ` ${esc(e.eigenaren.join(" & "))}` : "";
+    const missend = e.missend == null ? ' <span class="min">(−?)</span>' : e.missend ? ` <span class="min">(−${e.missend})</span>` : "";
     const weg = e.weg ? ' <span class="weg">(weg)</span>' : "";
-    const keer = logs.length ? ` <span class="keer">(${logs.length}x)</span>` : "";
-    const regel = `<b>${e.stukjes || "?"}</b>${nr}${missend}${wie}${weg}${keer}`;
-    if (!logs.length) return `<li class="ex-regel${e.weg ? " is-weg" : ""}">${regel}</li>`;
-    const gesorteerd = [...logs].sort((x, y) => (x.sec ?? Infinity) - (y.sec ?? Infinity));
-    return `<li${e.weg ? ' class="is-weg"' : ""}><details data-id="${esc(e.id)}"${open.has(e.id) ? " open" : ""}>
-      <summary>${regel}</summary><ol class="logs">${gesorteerd.map(log).join("")}</ol></details></li>`;
+    return `<span class="doos${e.weg ? " is-weg" : ""}">${e.eigenaren.length ? esc(e.eigenaren.join(" & ")) : "geen eigenaar"}${nr}${missend}${weg}</span>`;
   }
 
-  function log(l) {
+  // one version (piece count) with all its boxes; the times of all those boxes together, fastest first
+  function versie(a, stukjes, exs) {
+    const logs = exs.flatMap(({ e, logs }) => logs.map((l) => ({ l, e })));
+    const meer = exs.length > 1;
+    const regel = `<b>${stukjes || "?"}</b> ${exs.map(({ e }) => doos(e)).join('<span class="sep"> · </span>')}`
+      + (logs.length ? ` <span class="keer">(${logs.length}x)</span>` : "");
+    if (!logs.length) return `<li class="ex-regel">${regel}</li>`;
+    logs.sort((x, y) => (x.l.sec ?? Infinity) - (y.l.sec ?? Infinity));
+    const id = `${a.id}|${stukjes}`;
+    return `<li><details data-id="${esc(id)}"${open.has(id) ? " open" : ""}>
+      <summary>${regel}</summary><ol class="logs">${logs.map(({ l, e }) => log(l, meer ? e : null)).join("")}</ol></details></li>`;
+  }
+
+  function log(l, e) {
     const film = l.video
       ? `<a class="film yt" href="${esc(l.video)}" target="_blank" rel="noopener" title="Bekijk de video" aria-label="Bekijk de video">${ICON_YOUTUBE}</a>`
-      : l.gefilmd ? `<span class="film cam" title="Gefilmd, video komt nog" aria-label="Gefilmd, video komt nog">${ICON_CAMERA}</span>` : "";
-    const missend = l.missend == null ? " · niet compleet" : l.missend ? ` · ${l.missend} missend` : "";
+      : l.gefilmd ? `<span class="film cam" title="Gefilmd, video komt nog" aria-label="Gefilmd, video komt nog">${ICON_CAMERA}</span>`
+      : '<span class="film"></span>';
+    const notities = [
+      e ? `doos van ${e.eigenaren.length ? esc(e.eigenaren.join(" & ")) : "niemand"}${e.volgnummer > 1 ? ` (${e.volgnummer})` : ""}` : "",
+      l.missend == null ? "niet compleet" : l.missend ? `${l.missend} missend` : "",
+    ].filter(Boolean).join(" · ");
     return `<li><span class="t">${l.sec == null ? "geen tijd" : tijd(l.sec)}</span>
-      <span class="wie">${esc(l.makers.join(", "))}</span>
-      <span class="wanneer">${l.datum ? datum(l.datum) : "datum onbekend"}${missend}</span>${film}</li>`;
+      <span class="wie">${esc(l.makers.join(", "))}${notities ? `<small>${notities}</small>` : ""}</span>
+      <span class="wanneer">${l.datum ? datum(l.datum) : "onbekend"}</span>${film}</li>`;
   }
 })();

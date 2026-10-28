@@ -153,9 +153,62 @@ legend { padding: 0; margin-bottom: 6px; font: 500 .95rem/1.3 var(--f-display); 
   cursor: pointer;
 }
 .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.slider { display: grid; gap: 4px; font: 500 .95rem/1.3 var(--f-display); }
+.chip.meer { background: none; border-style: dashed; color: var(--accent); }
+.mode { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 8px; font-size: .92rem; }
+.mode label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.mode input { accent-color: var(--accent); }
 .slider output { font-family: var(--f-body); font-weight: 700; color: var(--accent); }
-.slider input { width: 100%; accent-color: var(--accent); }
+/* two handles on one track: the inputs lie on top of each other, only their thumbs catch the pointer */
+.range2 {
+  position: relative;
+  height: 28px;
+  margin: 2px 9px 0;
+  --van: 0;
+  --tot: 1;
+}
+.range2::before, .range2::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  height: 4px;
+  border-radius: 2px;
+}
+.range2::before { left: 0; right: 0; background: var(--line); }
+.range2::after { left: calc(var(--van) * 100%); right: calc((1 - var(--tot)) * 100%); background: var(--accent); }
+.range2 input {
+  position: absolute;
+  inset: 0 -9px;
+  width: calc(100% + 18px);
+  margin: 0;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: none;
+  z-index: 1;
+}
+.range2 input::-webkit-slider-runnable-track { background: none; height: 28px; }
+.range2 input::-moz-range-track { background: none; }
+.range2 input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: 22px;
+  height: 22px;
+  margin-top: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--surface);
+  cursor: grab;
+}
+.range2 input::-moz-range-thumb {
+  pointer-events: auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--surface);
+  cursor: grab;
+}
+.range2 input:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--ink); outline-offset: 1px; }
 .row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .select { display: flex; align-items: center; gap: 8px; font: 500 .95rem/1.3 var(--f-display); }
 .select select {
@@ -194,9 +247,9 @@ legend { padding: 0; margin-bottom: 6px; font: 500 .95rem/1.3 var(--f-display); 
 .pz-naam .meta { color: var(--muted); font-size: .9rem; }
 .pz-naam small { display: block; color: var(--muted); font-size: .9rem; }
 .pz-rechts { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.stars { color: var(--accent); letter-spacing: 1px; white-space: nowrap; }
+.stars { width: 5.6em; text-align: right; color: var(--accent); letter-spacing: 1px; white-space: nowrap; }
 .n {
-  min-width: 2.4em;
+  width: 3.2em;
   padding: 1px 8px;
   border-radius: 999px;
   background: var(--surface-2);
@@ -218,14 +271,15 @@ legend { padding: 0; margin-bottom: 6px; font: 500 .95rem/1.3 var(--f-display); 
 .ex details[open] > summary::before { content: "▾"; }
 .ex-regel { padding-left: calc(12px + 1.1em); }
 .ex .min { color: #ff9e8a; }
-.ex .keer { color: var(--muted); }
-.is-weg, .is-weg .keer { color: var(--muted); }
+.ex .keer, .ex .sep { color: var(--muted); }
+.is-weg { color: var(--muted); }
 .weg { font-style: italic; }
 
 .logs { list-style: none; margin: 0; padding: 0 12px 8px calc(12px + 1.1em); display: grid; gap: 2px; }
+/* fixed columns, so times, dates and icons line up from row to row */
 .logs li {
   display: grid;
-  grid-template-columns: 5.2em 1fr auto;
+  grid-template-columns: 5.2em 1fr 22px;
   grid-template-areas: "t wie film" ". wanneer film";
   column-gap: 10px;
   padding: 6px 0;
@@ -234,12 +288,13 @@ legend { padding: 0; margin-bottom: 6px; font: 500 .95rem/1.3 var(--f-display); 
 }
 .logs .t { grid-area: t; font-weight: 700; font-variant-numeric: tabular-nums; }
 .logs .wie { grid-area: wie; min-width: 0; }
+.logs .wie small { display: block; color: var(--muted); font-size: .84rem; }
 .logs .wanneer { grid-area: wanneer; color: var(--muted); font-size: .86rem; }
-.logs .film { grid-area: film; align-self: center; display: inline-flex; }
+.logs .film { grid-area: film; align-self: center; display: inline-flex; justify-content: center; width: 22px; }
 .film.cam { color: var(--muted); }
 .film.yt { color: var(--accent); }
 @media (min-width: 640px) {
-  .logs li { grid-template-columns: 5.2em 1fr auto auto; grid-template-areas: "t wie wanneer film"; align-items: center; }
+  .logs li { grid-template-columns: 5.2em 1fr 6.4em 22px; grid-template-areas: "t wie wanneer film"; align-items: center; }
 }
 
 /* ---------- What's new ---------- */

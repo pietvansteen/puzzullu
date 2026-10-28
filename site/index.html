@@ -8,16 +8,16 @@
 <style>html { background: #0f1f3f; color-scheme: dark; }</style>
 <title>Puzzullu · Onze Jan van Haasteren-puzzels</title>
 <meta name="description" content="Alle Jan van Haasteren-puzzels van Puzzullu: wie heeft welke, en hoe snel we ze gelegd hebben.">
-<link rel="icon" href="/logo.svg?v=0.3.0-d084d9" type="image/svg+xml">
+<link rel="icon" href="/logo.svg?v=0.3.0-d1883e" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="/style.css?v=0.3.0-d084d9">
+<link rel="stylesheet" href="/style.css?v=0.3.0-d1883e">
 </head>
 <body>
 <header class="wrap top">
   <a class="brand" href="/" aria-label="Puzzullu, overzicht">
-    <img src="/logo.svg?v=0.3.0-d084d9" width="44" height="44" alt="">
+    <img src="/logo.svg?v=0.3.0-d1883e" width="44" height="44" alt="">
     <span>Puzzullu</span>
   </a>
   <nav class="nav" aria-label="Pagina's">
@@ -41,9 +41,18 @@
       <div class="filter-body">
         <fieldset><legend>Aantal stukjes</legend><div class="chips" id="f-stukjes"></div></fieldset>
         <fieldset><legend>Eigenaar</legend><div class="chips" id="f-eigenaar"></div></fieldset>
-        <fieldset><legend>Gemaakt door <span class="muted">(samen)</span></legend><div class="chips" id="f-makers"></div></fieldset>
-        <label class="slider">Sneller dan <output id="tijd-out" for="f-tijd"></output>
-          <input type="range" id="f-tijd" min="0" step="1"></label>
+        <fieldset><legend>Gemaakt door</legend><div class="chips" id="f-makers"></div>
+          <div class="mode" id="makers-mode" hidden>
+            <label><input type="radio" name="makers-mode" id="los"> Minstens één van hen</label>
+            <label><input type="radio" name="makers-mode" id="samen"> Allemaal samen</label>
+          </div>
+        </fieldset>
+        <fieldset class="slider"><legend>Tijd: <output id="tijd-out"></output></legend>
+          <div class="range2" id="tijd-range">
+            <input type="range" id="f-van" min="0" step="1" aria-label="Langer dan">
+            <input type="range" id="f-tot" min="0" step="1" aria-label="Sneller dan">
+          </div>
+        </fieldset>
         <div class="row">
           <label class="select">Sorteren
             <select id="sort">
@@ -69,7 +78,7 @@
 </main>
 
 <footer class="wrap"><span>Puzzullu</span> <a class="version" href="/wat-is-nieuw/">v0.3.0 · Wat is nieuw</a></footer>
-<script src="/shared.js?v=0.3.0-d084d9"></script>
-<script src="/overzicht.js?v=0.3.0-d084d9"></script>
+<script src="/shared.js?v=0.3.0-d1883e"></script>
+<script src="/overzicht.js?v=0.3.0-d1883e"></script>
 </body>
 </html>
