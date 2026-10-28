@@ -13,9 +13,9 @@
   const LAATSTE = TIJDEN.length - 1;
   const VAAK = 5; // makers with more logs than this are always shown; the rest behind "Meer namen"
   // how many makers: solo, duo, 3, team (4, as at the NK) and 5 or more
-  const GROEPEN = [[1, "Solo"], [2, "Duo"], [3, "Met z'n drieën"], [4, "Team (4)"], [5, "5 of meer"]];
-  const OPSLAG = "pz-overzicht-v3";
-  const standaard = { zoek: "", stukjes: [], eigenaren: [], makers: [], samen: false, alleMakers: false, groep: [],
+  const GROEPEN = [[1, "Solo"], [2, "Duo"], [3, "Drie"], [4, "Team"], [5, "5 of meer"]];
+  const OPSLAG = "pz-overzicht-v4";
+  const standaard = { zoek: "", stukjes: [], eigenaren: [], makers: [], samen: true, alleMakers: false, groep: [],
     van: 0, tot: LAATSTE, snelste: false, sort: "az", tekenaar: false, rating: true, alles: false };
   let st = { ...standaard };
   try { st = { ...standaard, ...JSON.parse(localStorage.getItem(OPSLAG) || "{}"), zoek: "" }; } catch (e) { /* private window */ }
@@ -116,9 +116,6 @@
     const zichtbaar = st.alleMakers ? D.makers : vaak;
     $("f-makers").innerHTML = zichtbaar.map((m) => chip("makers", m, m, ` title="${D.keer[m]} keer gelegd"`)).join("")
       + (rest ? `<button type="button" class="chip meer" id="meer-makers">${st.alleMakers ? "Minder namen" : `Meer namen (${rest})`}</button>` : "");
-    $("makers-mode").hidden = st.makers.length < 2;
-    $("samen").checked = st.samen;
-    $("los").checked = !st.samen;
   }
 
   function koppel() {
@@ -204,7 +201,15 @@
     $("wis").hidden = !aantalFilters && !st.zoek;
 
     const logFilter = st.makers.length > 0 || st.groep.length > 0 || tijdFilter;
-    const wie = st.samen ? (l) => st.makers.every((m) => l.makers.includes(m)) : (l) => !st.makers.length || st.makers.some((m) => l.makers.includes(m));
+    // "samen" can only match when one of the chosen group sizes holds all chosen makers (Solo + 2 names never does);
+    // then the option is hidden and "minstens één" applies, without forgetting the choice
+    const samenKan = !st.groep.length || st.groep.some((g) => g >= 5 || g >= st.makers.length);
+    const samen = st.samen && samenKan;
+    $("makers-mode").hidden = st.makers.length < 2;
+    $("samen-optie").hidden = !samenKan;
+    $("samen").checked = samen;
+    $("los").checked = !samen;
+    const wie = samen ? (l) => st.makers.every((m) => l.makers.includes(m)) : (l) => !st.makers.length || st.makers.some((m) => l.makers.includes(m));
     const groep = (l) => !st.groep.length || st.groep.includes(Math.min(l.makers.length, 5));
     const maker = (l) => wie(l) && groep(l);
     const zoek = st.zoek.trim().toLowerCase();
