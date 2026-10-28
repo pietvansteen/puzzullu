@@ -4,7 +4,8 @@
   "changes": [
   "Na het loggen zie je hoeveel sneller of langzamer je was dan de vorige keer, met hetzelfde aantal stukjes en hetzelfde aantal mensen.",
   "Records tellen ook per aantal mensen: solo, duo, met z'n drieën, team of meer.",
-  "De vergelijking met het NK gebeurt alleen als de NK-puzzel evenveel stukjes had."
+  "De vergelijking met het NK gebeurt alleen als de NK-puzzel evenveel stukjes had.",
+  "In het overzicht kun je filteren op moeilijkheid: 1 tot 5 sterren, of puzzels zonder rating."
  ]},
  {"version": "0.4.3",
   "date": "2026-10-28",

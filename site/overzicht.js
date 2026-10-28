@@ -15,7 +15,7 @@
   // how many makers: solo, duo, 3, team (4, as at the NK) and 5 or more
   const GROEPEN = [[1, "Solo"], [2, "Duo"], [3, "Drie"], [4, "Team"], [5, "5 of meer"]];
   const OPSLAG = "pz-overzicht-v4";
-  const standaard = { zoek: "", stukjes: [], eigenaren: [], makers: [], samen: true, alleMakers: false, groep: [],
+  const standaard = { zoek: "", stukjes: [], eigenaren: [], makers: [], samen: true, alleMakers: false, groep: [], moeilijk: [],
     van: 0, tot: LAATSTE, snelste: false, sort: "az", tekenaar: false, rating: true, alles: false };
   let st = { ...standaard };
   try { st = { ...standaard, ...JSON.parse(localStorage.getItem(OPSLAG) || "{}"), zoek: "" }; } catch (e) { /* private window */ }
@@ -100,6 +100,9 @@
     $("f-eigenaar").innerHTML = D.eigenaren.map((v) => chip("eigenaren", v)).join("");
     makerChips();
     $("f-groep").innerHTML = GROEPEN.map(([v, label]) => chip("groep", v, label)).join("");
+    // difficulty 1-5, and 0 for pictures without a rating
+    $("f-rating").innerHTML = [1, 2, 3, 4, 5, 0].map((v) => chip("moeilijk", v, v ? "★".repeat(v) : "Zonder rating",
+      v ? ` aria-label="Rating ${v} van 5"` : "")).join("");
     $("f-van").max = $("f-tot").max = LAATSTE;
     $("f-van").value = st.van;
     $("f-tot").value = st.tot;
@@ -130,7 +133,7 @@
       const b = ev.target.closest(".chip");
       if (!b) return;
       const key = b.dataset.key;
-      const v = key === "stukjes" || key === "groep" ? Number(b.dataset.v) : b.dataset.v;
+      const v = ["stukjes", "groep", "moeilijk"].includes(key) ? Number(b.dataset.v) : b.dataset.v;
       st[key] = st[key].includes(v) ? st[key].filter((x) => x !== v) : [...st[key], v];
       b.setAttribute("aria-pressed", st[key].includes(v));
       if (key === "makers") makerChips();
@@ -159,7 +162,7 @@
       $(id).addEventListener("change", () => { st[key] = $(id).checked; wijzig(); });
     }
     $("wis").addEventListener("click", () => {
-      st = { ...st, zoek: "", stukjes: [], eigenaren: [], makers: [], groep: [], van: 0, tot: LAATSTE };
+      st = { ...st, zoek: "", stukjes: [], eigenaren: [], makers: [], groep: [], moeilijk: [], van: 0, tot: LAATSTE };
       bouwFilters();
       wijzig();
     });
@@ -211,7 +214,7 @@
     const perVersie = tijdFilter && st.snelste;
     const binnen = (sec) => (van == null || sec >= van) && (tot == null || sec < tot);
     const aantalFilters = (st.stukjes.length > 0) + (st.eigenaren.length > 0) + (st.makers.length > 0)
-      + (st.groep.length > 0) + tijdFilter;
+      + (st.groep.length > 0) + (st.moeilijk.length > 0) + tijdFilter;
     $("nfilters").textContent = aantalFilters ? `(${aantalFilters})` : "";
     $("wis").hidden = !aantalFilters && !st.zoek;
 
@@ -232,6 +235,7 @@
     const zichtbaar = [];
     for (const a of D.afbeeldingen) {
       if (treffers && !treffers.has(a.id)) continue;
+      if (st.moeilijk.length && !st.moeilijk.includes(a.rating || 0)) continue;
       const versies = new Map(); // stukjes -> [{ e, logs }]
       for (const e of a.exemplaren) {
         if (st.stukjes.length && !st.stukjes.includes(e.stukjes)) continue;
