@@ -1,4 +1,12 @@
 [
+ {"version": "0.3.0",
+  "date": "2026-10-28",
+  "changes": [
+  "Het overzicht: alle puzzels die we hebben of gelegd hebben. Klik op een puzzel voor de dozen, en op een doos voor de tijden, snelste bovenaan.",
+  "Zoeken op Engelse of Nederlandse naam, en filteren op aantal stukjes, eigenaar, wie hem gemaakt heeft en een maximale tijd.",
+  "Sorteren op minst of meest gemaakt, en vinkjes voor tekenaar en jaar, de moeilijkheid en alle puzzels van Jan van Haasteren. Je keuzes worden onthouden.",
+  "Bij een gefilmde puzzel staat een camera, of een YouTube-knop als de video online staat."
+ ]},
  {"version": "0.2.0",
   "date": "2026-10-28",
   "changes": [
