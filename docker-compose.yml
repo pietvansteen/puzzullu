@@ -27,6 +27,8 @@ services:
       LOGS_GID: "1071758480"           # Logs
       NK_GID: "1140165965"             # NK-tijden
       INTERVAL: "86400"      # once a day; at once after a change on /loggen/
+      SHEET_WRITE_URL: ${SHEET_WRITE_URL:-}        # to add new JvH pictures to Afbeeldingen, from .env
+      SHEET_WRITE_SECRET: ${SHEET_WRITE_SECRET:-}
       OUT_FILE: /data/data.json
       TZ: Europe/Amsterdam
     volumes:

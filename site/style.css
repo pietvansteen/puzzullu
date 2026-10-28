@@ -301,6 +301,138 @@ legend { padding: 0; margin-bottom: 6px; font: 500 .95rem/1.3 var(--f-display); 
   .logs li { grid-template-columns: 5.2em 1fr 6.4em 22px; grid-template-areas: "t wie wanneer film"; align-items: center; }
 }
 
+/* ---------- Loggen & beheer ---------- */
+.card {
+  display: grid;
+  gap: 16px;
+  margin: 12px 0 20px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.card p { margin: 0; }
+.card h2, .card h3 { margin: 0; }
+.veld { display: grid; gap: 6px; font: 500 .95rem/1.3 var(--f-display); }
+.veld input, .nieuw-naam input, .klein-getal, .tijdvelden input {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-family: var(--f-body);
+}
+.veld input:focus, .nieuw-naam input:focus, .klein-getal:focus, .tijdvelden input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.knop {
+  justify-self: start;
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 600 1rem/1.2 var(--f-display);
+  cursor: pointer;
+}
+.knop:disabled { opacity: .6; cursor: wait; }
+.knop.klein { padding: 6px 14px; font-size: .9rem; }
+.knop.rood { background: #ff9e8a; }
+.knoppen { display: flex; flex-wrap: wrap; gap: 10px; }
+.fout { color: #ff9e8a; min-height: 0; }
+.fout:empty { display: none; }
+.waarschuwing { padding: 12px 16px; border: 1px dashed #ff9e8a; border-radius: var(--radius); color: #ff9e8a; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tabs button {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 500 .95rem/1.2 var(--f-display);
+  cursor: pointer;
+}
+.tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.zoekveld { position: relative; }
+.suggesties {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+}
+.suggesties button {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.suggesties button:hover, .suggesties button:focus { background: var(--line); }
+.suggesties small { display: block; color: var(--muted); }
+.suggesties .geen { padding: 8px 10px; color: var(--muted); font-family: var(--f-body); font-weight: 400; }
+.keuzes { display: grid; gap: 6px; }
+.keuzes.rij { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.keuzes label, .vink { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.keuzes input[type=radio], .vink input { width: 18px; height: 18px; accent-color: var(--accent); }
+.nieuw-naam { display: flex; gap: 8px; margin-top: 8px; }
+.nieuw-naam input { flex: 1; min-width: 0; }
+.tijdvelden { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.tijdvelden input { width: 4.6em; text-align: center; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.tijdvelden span { font-weight: 700; }
+.klein-getal { width: 5em; padding: 6px 8px; }
+.klein-getal.breed { width: 9em; margin-top: 8px; }
+#doos-info, #doos-form, #rating-info { display: grid; gap: 14px; }
+#doos-form { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.dozen, .videolijst { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.dozen li, .videolijst li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.dozen .acties { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .9rem; }
+.dozen .min { color: #ff9e8a; }
+.videolijst li { display: grid; }
+.videolijst small { display: block; color: var(--muted); }
+.sterkeuze { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sterkeuze button[data-v]:not(.link-btn) {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--accent);
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+.sterkeuze button[aria-pressed="true"] { border-color: var(--accent); background: var(--line); }
+.feest {
+  max-width: min(92vw, 440px);
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+}
+.feest::backdrop { background: rgba(5, 12, 28, .7); }
+.feest-tekst { display: grid; gap: 10px; margin-bottom: 16px; }
+.feest-tekst p { margin: 0; }
+.feest .groot { font: 600 1.5rem/1.2 var(--f-display); }
+
 /* ---------- What's new ---------- */
 .changes { display: grid; gap: 14px; margin: 18px 0 30px; }
 .release {

@@ -31,5 +31,20 @@
     return dataPromise;
   }
 
-  window.PZ = { esc, getal: (n) => getal.format(n), tijd, datum, sterren, data };
+  // the password for /loggen/, kept on this device after logging in once
+  const ADMIN_KEY = "pz_admin";
+  const admin = {
+    get: () => { try { return localStorage.getItem(ADMIN_KEY) || ""; } catch (e) { return ""; } },
+    set: (t) => { try { localStorage.setItem(ADMIN_KEY, t); } catch (e) { /* private window */ } },
+    clear: () => { try { localStorage.removeItem(ADMIN_KEY); } catch (e) { /* ignore */ } },
+  };
+
+  // "Loggen" in the menu, only on devices with the password
+  const nav = document.querySelector(".nav");
+  if (nav && admin.get() && !nav.querySelector('a[href="/loggen/"]')) {
+    const here = location.pathname.startsWith("/loggen");
+    nav.insertAdjacentHTML("beforeend", `<a href="/loggen/"${here ? ' aria-current="page"' : ""}>Loggen 🔒</a>`);
+  }
+
+  window.PZ = { esc, getal: (n) => getal.format(n), tijd, datum, sterren, data, admin };
 })();

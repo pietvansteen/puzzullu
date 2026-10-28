@@ -4,7 +4,19 @@
     {
       "name": "puzzullu",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["tools/dev.py"],
+      "runtimeArgs": [
+        "tools/dev.py"
+      ],
+      "port": 8091
+    },
+    {
+      "name": "puzzullu-mock",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "MOCK=1",
+        "python3",
+        "tools/dev.py"
+      ],
       "port": 8091
     }
   ]

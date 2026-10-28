@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0f1f3f">
+<meta name="robots" content="noindex, nofollow">
+<style>html { background: #0f1f3f; color-scheme: dark; }</style>
+<title>Loggen · Puzzullu</title>
+<link rel="icon" href="/logo.svg?v=0.4.0-c5f7ae" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="/style.css?v=0.4.0-c5f7ae">
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/" aria-label="Puzzullu, overzicht">
+    <img src="/logo.svg?v=0.4.0-c5f7ae" width="44" height="44" alt="">
+    <span>Puzzullu</span>
+  </a>
+  <nav class="nav" aria-label="Pagina's">
+    <a href="/">Overzicht</a>
+    <span class="soon" title="Komt binnenkort">Statistieken</span>
+    <span class="soon" title="Komt binnenkort">Generator</span>
+  </nav>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Loggen &amp; beheer</h1>
+  </section>
+
+  <!-- the password, once per device -->
+  <form class="card" id="login" hidden>
+    <p>Deze pagina is voor Puzzullu zelf. Vul het wachtwoord in; dit apparaat onthoudt het daarna.</p>
+    <label class="veld">Wachtwoord <input type="password" id="wachtwoord" autocomplete="current-password" required></label>
+    <button class="knop" type="submit">Inloggen</button>
+    <p class="fout" id="login-fout" role="alert"></p>
+  </form>
+
+  <div id="beheer" hidden>
+    <p class="waarschuwing" id="niet-schrijven" hidden>Opslaan in de Sheet is nog niet ingesteld (SHEET_WRITE_URL in .env). Je kunt rondkijken, maar nog niets opslaan.</p>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" data-tab="tijd" aria-selected="true">Tijd loggen</button>
+      <button type="button" role="tab" data-tab="dozen" aria-selected="false">Dozen</button>
+      <button type="button" role="tab" data-tab="videos" aria-selected="false">Video's</button>
+      <button type="button" role="tab" data-tab="rating" aria-selected="false">Rating</button>
+      <button type="button" role="tab" data-tab="overig" aria-selected="false">Overig</button>
+    </div>
+
+    <!-- A. a time -->
+    <form class="card paneel" id="p-tijd" data-paneel="tijd" novalidate>
+      <div class="veld zoekveld">
+        <label for="tijd-zoek">Welke puzzel?</label>
+        <input type="search" id="tijd-zoek" placeholder="Zoek op naam" autocomplete="off">
+        <ul class="suggesties" id="tijd-sugg" hidden></ul>
+      </div>
+      <fieldset id="tijd-doos" hidden><legend>Welke doos?</legend><div class="keuzes" id="tijd-dozen"></div></fieldset>
+      <fieldset><legend>Wie?</legend>
+        <div class="chips" id="tijd-makers"></div>
+        <div class="nieuw-naam"><input type="text" id="tijd-nieuw" placeholder="Nieuwe naam" maxlength="40" autocomplete="off"><button type="button" class="knop klein" id="tijd-nieuw-knop">+ Toevoegen</button></div>
+      </fieldset>
+      <fieldset><legend>Tijd</legend>
+        <div class="tijdvelden">
+          <input type="number" id="t-u" inputmode="numeric" min="0" max="999" placeholder="u" aria-label="Uren">
+          <span>:</span><input type="number" id="t-m" inputmode="numeric" min="0" max="59" placeholder="mm" aria-label="Minuten">
+          <span>:</span><input type="number" id="t-s" inputmode="numeric" min="0" max="59" placeholder="ss" aria-label="Seconden">
+        </div>
+        <label class="vink"><input type="checkbox" id="t-geen"> Zonder tijd (niet getimed)</label>
+      </fieldset>
+      <label class="veld">Datum <input type="date" id="tijd-datum" required></label>
+      <fieldset><legend>Compleet?</legend>
+        <div class="keuzes rij">
+          <label><input type="radio" name="compleet" value="ja" checked> <span id="compleet-label">Compleet</span></label>
+          <label><input type="radio" name="compleet" value="mist"> Er missen <input type="number" id="tijd-mist" min="1" max="9999" inputmode="numeric" class="klein-getal" aria-label="Aantal missende stukjes"> stukjes</label>
+        </div>
+      </fieldset>
+      <label class="vink"><input type="checkbox" id="tijd-gefilmd"> Gefilmd</label>
+      <button class="knop" type="submit">Opslaan</button>
+      <p class="fout" id="tijd-fout" role="alert"></p>
+    </form>
+
+    <!-- B. boxes: add, gone, missing pieces -->
+    <section class="card paneel" data-paneel="dozen" hidden>
+      <div class="veld zoekveld">
+        <label for="doos-zoek">Welke puzzel?</label>
+        <input type="search" id="doos-zoek" placeholder="Zoek op naam (ook puzzels die we nog niet hebben)" autocomplete="off">
+        <ul class="suggesties" id="doos-sugg" hidden></ul>
+      </div>
+      <div id="doos-info" hidden>
+        <h2 id="doos-naam"></h2>
+        <ul class="dozen" id="doos-lijst"></ul>
+        <form id="doos-form" novalidate>
+          <h3>Doos toevoegen</h3>
+          <fieldset><legend>Aantal stukjes</legend>
+            <div class="chips" id="doos-versies"></div>
+            <input type="number" id="doos-stukjes" min="1" max="99999" inputmode="numeric" placeholder="Ander aantal" class="klein-getal breed">
+          </fieldset>
+          <fieldset><legend>Van wie?</legend>
+            <div class="chips" id="doos-eigenaren"></div>
+            <div class="nieuw-naam"><input type="text" id="doos-nieuw" placeholder="Nieuwe naam" maxlength="40" autocomplete="off"><button type="button" class="knop klein" id="doos-nieuw-knop">+ Toevoegen</button></div>
+          </fieldset>
+          <p class="muted" id="doos-hint"></p>
+          <button class="knop" type="submit">Doos toevoegen</button>
+          <p class="fout" id="doos-fout" role="alert"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- C. video links -->
+    <section class="card paneel" data-paneel="videos" hidden>
+      <p class="muted">Gefilmd, maar nog zonder link. Plak de YouTube-link en sla op.</p>
+      <ul class="videolijst" id="video-lijst"></ul>
+    </section>
+
+    <!-- D. ratings -->
+    <section class="card paneel" data-paneel="rating" hidden>
+      <div class="veld zoekveld">
+        <label for="rating-zoek">Welke puzzel?</label>
+        <input type="search" id="rating-zoek" placeholder="Zoek op naam" autocomplete="off">
+        <ul class="suggesties" id="rating-sugg" hidden></ul>
+      </div>
+      <div id="rating-info" hidden>
+        <h2 id="rating-naam"></h2>
+        <p class="muted">Moeilijkheid: 1 = makkelijk, 5 = moeilijk.</p>
+        <div class="sterkeuze" id="rating-sterren"></div>
+        <p class="fout" id="rating-fout" role="alert"></p>
+      </div>
+    </section>
+
+    <!-- E. the rest -->
+    <section class="card paneel" data-paneel="overig" hidden>
+      <p>De site haalt de Sheet één keer per dag op, en meteen na elke wijziging hier. Iets rechtstreeks in de Sheet veranderd?</p>
+      <p class="knoppen">
+        <button type="button" class="knop" id="nu-sync">Sheet nu ophalen</button>
+        <button type="button" class="knop" id="nu-jvh">JvH-catalogus nu bijwerken</button>
+      </p>
+      <p class="muted" id="overig-melding" role="status"></p>
+      <p><button type="button" class="link-btn" id="uitloggen">Uitloggen op dit apparaat</button></p>
+    </section>
+  </div>
+
+  <!-- after saving -->
+  <dialog class="feest" id="feest">
+    <div class="feest-tekst" id="feest-tekst"></div>
+    <form method="dialog"><button class="knop">Top!</button></form>
+  </dialog>
+</main>
+
+<footer class="wrap"><span>Puzzullu</span> <a class="version" href="/wat-is-nieuw/">v0.4.0 · Wat is nieuw</a></footer>
+<script src="/shared.js?v=0.4.0-c5f7ae"></script>
+<script src="/loggen/loggen.js?v=0.4.0-c5f7ae"></script>
+</body>
+</html>

@@ -16,10 +16,12 @@ Google Sheet ──(dagelijks, of meteen)──> sync ──> data/data.json ─
 | `sync/sync.py` | Haalt de tabbladen van de Sheet op als CSV en schrijft `data/data.json` |
 | `sync/jvh.py` | Haalt één keer per dag de JvH-catalogus op (alle afbeeldingen en alle uitgaves) uit het digitaal museum van jvh-puzzels.nl |
 | `tools/migratie.py` | Eenmalig (gedaan op 28-10-2026): zette de oude tabbladen om naar de nieuwe, met een rapport om eerst te controleren |
-| `api/api.py` | Kleine API achter het wachtwoord: de Sheet nu bijwerken, en (later) tijden loggen en de collectie aanpassen via de Apps Script |
+| `api/api.py` | Kleine API achter het wachtwoord: tijden loggen, dozen, video-links en ratings opslaan via de Apps Script, en de Sheet nu ophalen |
+| `apps-script/Puzzullu.gs` | Apps Script in de Sheet: schrijft wat er op `/loggen/` wordt opgeslagen in de tabbladen |
 | `web/nginx.conf` | Serveert de site en `data.json`, en stuurt `/api/` door naar de API |
 | `tools/release.py` | Zet de nieuwste versie uit `site/changelog.json` in de footer en op de links naar css/js/svg |
 | `tools/dev.py` | Draait de hele site lokaal, zoals op de server |
+| `tools/mock_sheet.py` | Neppe Apps Script voor lokaal testen van `/loggen/` (`MOCK=1 python3 tools/dev.py`) |
 | `docker-compose.yml` | Draait alles met Docker Compose |
 
 Er zijn geen pip-pakketten nodig: alles draait op standaard Python.
@@ -56,6 +58,27 @@ De site gebruikt de bestaande tunnel van funkyorbit.nl; Puzzullu heeft geen eige
 2. In funkyorbit's `docker-compose.yml` komt de `tunnel`-service (cloudflared) ook in het netwerk `tunnel` (naast `default`).
 3. In Cloudflare wijst de public hostname `puzzullu.funkyorbit.nl` naar `http://puzzullu-web:80`.
 
+## Loggen & beheer
+
+De pagina `/loggen/` staat niet in het menu voor bezoekers. Je logt één keer in met het wachtwoord uit `ADMIN_TOKEN` (`.env`); daarna onthoudt dat apparaat het en staat **Loggen 🔒** in het menu. Daar kun je:
+
+- **Tijd loggen**: puzzel en doos kiezen, wie, de tijd, de datum, compleet of niet, gefilmd. Daarna zie je of het een record is, en hoe de tijd zich verhoudt tot de winnaar van het NK (alleen als het aantal mensen klopt: solo 1, duo 2, team 4).
+- **Dozen**: een doos toevoegen (heeft dezelfde eigenaar die versie al, dan wordt het doos 2), missende stukjes aanpassen of een doos weghalen. Een weggehaalde doos blijft in de Sheet met status `weg`, zodat de tijden blijven bestaan.
+- **Video's**: een YouTube-link toevoegen bij gefilmde puzzels.
+- **Rating**: de moeilijkheid (1–5) van een puzzel. Dat kan ook rechtstreeks in de Sheet, in tabblad Afbeeldingen, kolom `rating`.
+- **Overig**: de Sheet of de JvH-catalogus nu ophalen, en uitloggen.
+
+Opslaan gaat via een Apps Script in de Sheet. Eenmalig instellen:
+
+1. In de Sheet: *Extensies > Apps Script*, voeg een scriptbestand toe (*+ > Script*) met de naam `Puzzullu` en plak daar `apps-script/Puzzullu.gs` in. Het project mag geen andere `doPost` hebben.
+2. *Projectinstellingen > Scripteigenschappen*: voeg `SECRET` toe met een lange willekeurige waarde.
+3. *Implementeren > Nieuwe implementatie*, type *Web-app*, uitvoeren als *Ik*, toegang *Iedereen*. Geef de toegang die gevraagd wordt en kopieer de `/exec`-URL.
+4. Zet `SHEET_WRITE_URL` (de URL) en `SHEET_WRITE_SECRET` (hetzelfde geheim) in `.env` op de server en draai `sudo docker compose up -d`.
+
+Na een wijziging in `Puzzullu.gs`: *Implementeren > Implementaties beheren*, bewerken, *Nieuwe versie*; de URL blijft hetzelfde.
+
+Met de Apps Script voegt de sync ook nieuwe puzzels van de JvH-site toe aan het tabblad Afbeeldingen.
+
 ## Lokaal testen
 
 ```sh
@@ -70,6 +93,8 @@ CSV=1 python3 tools/dev.py
 ```
 
 De bestanden in `testdata/` staan niet in git, omdat ze onze namen en tijden bevatten.
+
+De loggen-pagina testen zonder de echte Sheet: `MOCK=1 python3 tools/dev.py` (wachtwoord `test`). Een neppe Apps Script (`tools/mock_sheet.py`) schrijft dan in `testdata/`; zet die daarna terug met `python3 sync/sync.py --snapshot testdata`.
 
 ## Versies en Wat is nieuw
 

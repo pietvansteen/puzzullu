@@ -13,8 +13,12 @@ The Sheet has two layouts:
 Both give the same data.json.
 
 Once a day it also fetches the JvH catalogue (jvh.py) into jvh.json, which adds the known piece counts
-("versies") and JvH links to data.json. Pictures JvH has and the Sheet not yet are logged; writing them
-to the Afbeeldingen tab goes through the Apps Script (step 4). sync-now with {"jvh": true} fetches it at once.
+("versies") and JvH links to data.json. Pictures JvH has and the Sheet not yet are added to the Afbeeldingen tab
+through the Apps Script (when SHEET_WRITE_URL is set). sync-now with {"jvh": true} fetches it at once.
+
+sync-now may also hold {"wacht": {"lijst": "logs", "id": "L0536", "veld": "video", "waarde": "https://..."}}
+(written by the API after a change): Google's CSV export can lag behind, so the sync tries again until data.json
+shows that change (the item exists, and when "veld" is given, has that value).
 
 Settings via environment variables (see docker-compose.yml):
   SHEET_ID          ID of the Google Sheet (Jan van Haasteren Puzzel Collectie 3.0)
@@ -24,6 +28,7 @@ Settings via environment variables (see docker-compose.yml):
   INTERVAL          seconds between two syncs (default 86400); 0 = run once
   JVH_FILE          the JvH catalogue (default jvh.json next to OUT_FILE), fetched at most once a day
   JVH_SCRAPE        0 = never fetch the JvH catalogue (use the file as it is)
+  SHEET_WRITE_URL / SHEET_WRITE_SECRET   the Apps Script, to add new JvH pictures to Afbeeldingen (optional)
   <NAME>_CSV        optional: a local CSV file instead of Google, e.g. LOGS_CSV=testdata/logs.csv
 
   python3 sync/sync.py --snapshot testdata   saves every tab as testdata/<name>.csv (for CSV=1 in tools/dev.py)
@@ -56,6 +61,8 @@ INTERVAL = int(os.environ.get("INTERVAL", "86400"))
 SYNC_FLAG = os.path.join(os.path.dirname(os.path.abspath(OUT_FILE)), "sync-now")
 JVH_FILE = os.environ.get("JVH_FILE") or os.path.join(os.path.dirname(os.path.abspath(OUT_FILE)), "jvh.json")
 JVH_SCRAPE = os.environ.get("JVH_SCRAPE", "1") != "0"
+SHEET_WRITE_URL = os.environ.get("SHEET_WRITE_URL", "")
+SHEET_WRITE_SECRET = os.environ.get("SHEET_WRITE_SECRET", "")
 JVH_MAX_AGE = 20 * 3600  # fetch the catalogue at most about once a day
 
 EXPORT_URL = "https://docs.google.com/spreadsheets/d/{sheet}/export?format=csv&gid={gid}"
@@ -330,6 +337,23 @@ def add_catalogue(afbeeldingen):
     return [c for c in cat if c["id"] not in seen]
 
 
+def add_to_sheet(pictures):
+    """New JvH pictures to the Afbeeldingen tab, through the Apps Script; they show on the site after the next sync."""
+    if not (SHEET_WRITE_URL and SHEET_WRITE_SECRET):
+        return
+    payload = {"secret": SHEET_WRITE_SECRET, "action": "addAfbeeldingen", "afbeeldingen": [
+        {"afbeelding_id": c["id"], "titel_en": c["en"], "titel_nl": c["nl"], "tekenaar": c["tekenaar"],
+         "jaar": c["jaar"] or "", "bron": c["bron"], "jvh_url": c["jvhUrl"]} for c in pictures]}
+    try:
+        req = urllib.request.Request(SHEET_WRITE_URL, data=json.dumps(payload).encode(),
+                                     headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+        log(f"JvH pictures added to the Sheet: {result.get('added')}" if result.get("ok") else f"Apps Script said: {result}")
+    except (OSError, ValueError) as e:
+        log(f"WARNING: could not add the JvH pictures to the Sheet: {e}")
+
+
 # ---------------------------------------------------------------- data.json
 
 def build(tabs):
@@ -340,6 +364,8 @@ def build(tabs):
     if missing_jvh:
         log(f"{len(missing_jvh)} JvH picture(s) not in the Sheet yet: "
             f"{', '.join(c['nl'] for c in missing_jvh[:8])}{' …' if len(missing_jvh) > 8 else ''}")
+        if new:
+            add_to_sheet(missing_jvh)
     personen = sorted({m for l in logs for m in l["makers"]} | {p for e in exemplaren for p in e["eigenaren"]},
                       key=str.lower)
     return {
@@ -416,14 +442,14 @@ def main():
     asked = {}
     while True:
         update_jvh(force=bool(asked and asked.get("jvh")))
-        want = str(asked.get("log") or "") if asked else ""
-        # Google's CSV export can lag a few seconds behind a change: try again until the new log is in
-        for attempt in range(6 if want else 1):
+        want = (asked or {}).get("wacht") or ({"lijst": "logs", "id": asked["log"]} if (asked or {}).get("log") else None)
+        # Google's CSV export can lag a few seconds behind a change: try again until the change is in
+        for attempt in range(8 if want else 1):
             try:
                 data = sync_once()
-                if not want or any(l["id"] == want for l in data["logs"]):
+                if not want or shows(data, want):
                     break
-                log(f"log {want} not in the export yet, trying again")
+                log(f"{want.get('lijst')} {want.get('id')} not changed in the export yet, trying again")
             except Exception as e:  # the old data.json stays in place
                 log(f"ERROR: {e}")
                 if INTERVAL == 0:
@@ -433,8 +459,14 @@ def main():
             break
         asked = wait()
         if asked is not None:
-            log("sync asked for" + (f" (new log {asked['log']})" if asked.get("log") else "")
+            log("sync asked for" + (f" (waiting for {asked['wacht']})" if asked.get("wacht") else "")
                 + (" (JvH catalogue)" if asked.get("jvh") else ""))
+
+
+def shows(data, want):
+    """Does data.json show the change the API made? (see "wacht" at the top)"""
+    item = next((x for x in data.get(want.get("lijst"), []) if x["id"] == want.get("id")), None)
+    return item is not None and ("veld" not in want or item.get(want["veld"]) == want.get("waarde"))
 
 if __name__ == "__main__":
     main()

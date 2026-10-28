@@ -6,9 +6,11 @@ Puzzullu local server: the whole site as on the server, on http://localhost:8091
 
 Starts the API (port 8001) and the sync (live Sheet, waits for sync-now like on the server),
 and serves site/ with /data.json and /api/ as web/nginx.conf does. Data goes to data/ (gitignored).
-Settings come from .env next to docker-compose.yml (gitignored): ADMIN_TOKEN (default "test"),
-SHEET_WRITE_URL and SHEET_WRITE_SECRET (without them /loggen/ cannot save).
+Settings come from .env next to docker-compose.yml (gitignored), or from the environment, which wins:
+ADMIN_TOKEN (default "test"), SHEET_WRITE_URL and SHEET_WRITE_SECRET (without them /loggen/ cannot save).
 Add CSV=1 to sync from testdata/ instead of the live Sheet (fill it with: python3 sync/sync.py --snapshot testdata).
+Add MOCK=1 to test /loggen/ without the real Sheet: CSV=1, plus tools/mock_sheet.py as the Apps Script, which
+writes to testdata/ (password "test").
 Ctrl+C stops everything.
 """
 
@@ -90,10 +92,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 def main():
     conf = read_env()
+    mock = bool(os.environ.get("MOCK"))
+    if mock:
+        os.environ.update(CSV="1", ADMIN_TOKEN="test", SHEET_WRITE_URL="http://127.0.0.1:8099", SHEET_WRITE_SECRET="test")
     data = os.path.join(ROOT, "data")
     env = dict(os.environ, DATA_FILE=f"{data}/data.json", OUT_FILE=f"{data}/data.json", INTERVAL="86400",
-               PORT=str(API_PORT), TZ="Europe/Amsterdam", ADMIN_TOKEN=conf.get("ADMIN_TOKEN") or "test",
-               SHEET_WRITE_URL=conf.get("SHEET_WRITE_URL", ""), SHEET_WRITE_SECRET=conf.get("SHEET_WRITE_SECRET", ""))
+               PORT=str(API_PORT), TZ="Europe/Amsterdam", ADMIN_TOKEN=os.environ.get("ADMIN_TOKEN") or conf.get("ADMIN_TOKEN") or "test",
+               SHEET_WRITE_URL=os.environ.get("SHEET_WRITE_URL") or conf.get("SHEET_WRITE_URL", ""),
+               SHEET_WRITE_SECRET=os.environ.get("SHEET_WRITE_SECRET") or conf.get("SHEET_WRITE_SECRET", ""))
     if os.environ.get("CSV"):
         for name in TABS:
             path = os.path.join(ROOT, "testdata", f"{name.lower()}.csv")
@@ -102,6 +108,8 @@ def main():
     print(f"admin password: {'from .env' if conf.get('ADMIN_TOKEN') else 'test'}; "
           f"saving to the Sheet: {'on' if env['SHEET_WRITE_URL'] and env['SHEET_WRITE_SECRET'] else 'off (no SHEET_WRITE_URL/SECRET in .env)'}")
     procs = [subprocess.Popen([sys.executable, "-u", os.path.join(ROOT, d, f"{d}.py")], env=env) for d in ("api", "sync")]
+    if mock:
+        procs.append(subprocess.Popen([sys.executable, "-u", os.path.join(ROOT, "tools", "mock_sheet.py")], env=env))
     try:
         print(f"site on http://localhost:{PORT}/  (log page: http://localhost:{PORT}/loggen/)", flush=True)
         http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
