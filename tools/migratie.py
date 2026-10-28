@@ -4,14 +4,19 @@ One-off migration from the old Sheet layout to the new tabs (SPEC §3.3).
 
   python3 tools/migratie.py
 
-Reads Puzzel Collectie 2.0, Alle uitgaves JvH and Voorronde/finale tijden (from testdata/ when there,
-else from the live Sheet) and the JvH catalogue (cached in migratie/ after the first download), links every
+Reads Puzzel Collectie 2.0, Alle uitgaves JvH and Voorronde/finale tijden (the copies in migratie/oud/,
+saved on the day of the migration) and the JvH catalogue (cached in migratie/ after the first download), links every
 name to a JvH picture and writes to migratie/ (gitignored, it holds our names and times):
 
   rapport.html       what Piet checks: proposed links, name changes, odd values, people
   keuzes.csv         every link that is not certain, with a "keuze" column: empty = take the proposal,
                      an afbeelding_id = link to that picture, "nieuw" = a picture of its own.
                      Kept between runs, so fill it in and run the script again.
+  correcties.json    Piet's other corrections, read when present: "versies" ("<en>|<stukjes>" -> afbeelding_id),
+                     "stukjes_ok" (en -> why a piece count JvH does not list is right), "personen" (old -> new name),
+                     "makers" ("<en>|<old makers>" -> new makers),
+                     "geen_tijd" (values in Tijd that mean: done without a time), "opmerkingen" (afbeelding_id -> remark),
+                     "weglaten" ("<en>|<stukjes>|<tijd>|<datum>" -> why that row is left out, e.g. a duplicate)
   afbeeldingen.csv, exemplaren.csv, logs.csv, personen.csv, nk-tijden.csv
                      the new tabs, ready to import in the Sheet once Piet has confirmed the report
 
@@ -21,6 +26,7 @@ Nothing is written to the Sheet.
 import csv
 import difflib
 import html
+import json
 import pathlib
 import re
 import sys
@@ -33,7 +39,7 @@ import jvh  # noqa: E402
 import sync  # noqa: E402
 
 OUT = ROOT / "migratie"
-TESTDATA = ROOT / "testdata"
+OLD = OUT / "oud"  # the old tabs as they were on the day of the migration
 TODAY = date.today().strftime("%d-%m-%Y")
 FUZZY = 0.82  # SequenceMatcher ratio from which a name "looks like" a JvH title
 
@@ -43,10 +49,7 @@ esc = html.escape
 # ---------------------------------------------------------------- input
 
 def tab(name):
-    path = TESTDATA / f"{name.lower()}.csv"
-    if path.exists():
-        return list(csv.reader(path.open(encoding="utf-8")))
-    return list(csv.reader(sync.download(sync.GIDS[name]).splitlines()))
+    return list(csv.reader((OLD / f"{name.lower()}.csv").open(encoding="utf-8")))
 
 
 def catalogue():
@@ -66,6 +69,18 @@ def read_keuzes():
     rows = list(csv.DictReader(path.open(encoding="utf-8")))
     return {(r["soort"], jvh.name_key(r["naam_en"]), jvh.name_key(r["naam_nl"])): r["keuze"].strip()
             for r in rows if r.get("keuze", "").strip()}
+
+
+def read_correcties():
+    path = OUT / "correcties.json"
+    c = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    return {"versies": {(jvh.name_key(k.rsplit("|", 1)[0]), int(k.rsplit("|", 1)[1])): v for k, v in c.get("versies", {}).items()},
+            "stukjes_ok": {jvh.name_key(k): v for k, v in c.get("stukjes_ok", {}).items()},
+            "personen": c.get("personen", {}),
+            "makers": {(jvh.name_key(k.rsplit("|", 1)[0]), k.rsplit("|", 1)[1]): v for k, v in c.get("makers", {}).items()},
+            "geen_tijd": {t.strip().lower() for t in c.get("geen_tijd", [])}, "opmerkingen": c.get("opmerkingen", {}),
+            "weglaten": {jvh.name_key(k.split("|")[0]) + "|" + "|".join(x.strip() for x in k.split("|")[1:]): v
+                         for k, v in c.get("weglaten", {}).items()}}
 
 
 # ---------------------------------------------------------------- matching
@@ -130,6 +145,8 @@ def run():
     afbeeldingen = [dict(a, rating=None, opmerking="") for a in cat["afbeeldingen"]]
     m = Matcher(afbeeldingen)
     keuzes = read_keuzes()
+    corr = read_correcties()
+    applied = defaultdict(list)  # corrections from correcties.json, shown in the report
     links = {}            # (soort, en, nl) -> link info for keuzes.csv and the report
     renamed = []          # exact links whose spelling in the Sheet differs from JvH
     issues = defaultdict(list)
@@ -183,6 +200,21 @@ def run():
         if opm and opm not in a["opmerking"]:
             a["opmerking"] = f"{a['opmerking']}; {opm}" if a["opmerking"] else opm
 
+    for pid, opm in corr["opmerkingen"].items():
+        if pid not in m.by_id:
+            issues["keuzes"].append(f"Opmerking voor “{pid}” in correcties.json: die afbeelding bestaat niet.")
+            continue
+        a = m.by_id[pid]
+        if opm not in a["opmerking"]:
+            a["opmerking"] = f"{a['opmerking']}; {opm}" if a["opmerking"] else opm
+            applied["opmerking"].append(f"{a['en']}: opmerking “{opm}”")
+
+    def rename(p):
+        new = corr["personen"].get(p, p)
+        if new != p and f"{p} → {new}" not in applied["persoon"]:
+            applied["persoon"].append(f"{p} → {new}")
+        return new
+
     # --- Puzzel Collectie 2.0: boxes and logs
     rows = tab("COLLECTIE")
     c = sync.columns(rows[0], en=("naam puzzel engels",), nl=("naam puzzel nederlands",), stukjes=("aantal stukjes",),
@@ -194,48 +226,72 @@ def run():
         en, nl = sync.cell(r, c["en"]), sync.cell(r, c["nl"])
         if not (en or nl):
             continue
+        skip = corr["weglaten"].get("|".join([jvh.name_key(en)] + [sync.cell(r, c[k]) for k in ("stukjes", "tijd", "datum")]))
+        if skip:
+            applied["weglaten"].append(f"Rij {nr} ({en} {sync.cell(r, c['stukjes'])}, {sync.cell(r, c['tijd'])}) weggelaten: {skip}")
+            continue
         a = link("collectie", en, nl)
         stukjes = sync.number(sync.cell(r, c["stukjes"]))
-        eigenaar = sync.person(sync.cell(r, c["eigenaar"]))
+        other = corr["versies"].get((jvh.name_key(en), stukjes))
+        if other in m.by_id:
+            if (en.strip(), stukjes) not in [x[:2] for x in applied["versie"]]:
+                applied["versie"].append((en.strip(), stukjes, m.by_id[other]))
+            a = m.by_id[other]
+        elif other:
+            issues["keuzes"].append(f"Versie {en} {stukjes} in correcties.json: “{other}” bestaat niet.")
+        eigenaar = rename(sync.person(sync.cell(r, c["eigenaar"])))
         if eigenaar.lower() == "puzzullu":
             issues["eigenaar"].append(f"Rij {nr} ({en}): eigenaar Puzzullu → geen eigenaar.")
             eigenaar = ""
+        eigenaren = sync.makers(eigenaar)  # one or more owners, one box
+        eigenaar = ", ".join(eigenaren)
         key = (a["id"], stukjes, eigenaar)
         ex = exemplaren.get(key)
         if not ex:
-            ex = exemplaren[key] = {"exemplaar_id": f"{a['id']}-{stukjes or 0}-{jvh.slug(eigenaar) or 'zonder'}",
+            ex = exemplaren[key] = {"exemplaar_id": f"{a['id']}-{stukjes or 0}-{jvh.slug('-'.join(eigenaren)) or 'zonder'}",
                                     "afbeelding_id": a["id"], "stukjes": stukjes or "", "eigenaar": eigenaar,
                                     "volgnummer": 1, "missende_stukjes": 0, "status": "in bezit",
                                     "toegevoegd_op": TODAY, "gewijzigd_op": TODAY}
             if a["versies"] and stukjes not in a["versies"]:
-                issues["stukjes"].append((a, stukjes, eigenaar, nr))
+                why = corr["stukjes_ok"].get(jvh.name_key(en))
+                if why:
+                    applied["stukjes"].append(f"{a['en']} {stukjes} ({eigenaar or 'geen eigenaar'}): {why}")
+                else:
+                    issues["stukjes"].append((a, stukjes, eigenaar, nr))
         if "verkocht" in sync.cell(r, c["kolom1"]).lower():
             ex["status"] = "weg"
             issues["weg"].append(f"Rij {nr}: {a['en']} {stukjes} van {eigenaar} is verkocht → status weg (de log blijft).")
         compleet, dag = sync.cell(r, c["compleet"]), sync.iso_date(sync.cell(r, c["datum"]))
         missend = sync.missing(compleet)
-        if compleet.lower() == "nee":
-            issues["compleet"].append(f"Rij {nr} ({a['en']} {stukjes}, {eigenaar}): “Nee” zonder aantal → 1 missend stukje.")
-            missend = 1
+        if compleet and missend is None:
+            issues["compleet"].append(f"Rij {nr} ({a['en']} {stukjes}, {eigenaar}): “{compleet}” zonder aantal → "
+                                      f"compleet “nee” en missende stukjes “onbekend”.")
         if compleet and (key not in last or (dag or "") >= last[key]):
             last[key] = dag or ""
-            ex["missende_stukjes"] = missend or 0
+            ex["missende_stukjes"] = "onbekend" if missend is None else missend
         tijd, extra = sync.cell(r, c["tijd"]), sync.cell(r, c["extra11"])
+        if tijd.strip().lower() in corr["geen_tijd"]:
+            applied["tijd"].append(f"Rij {nr} ({a['en']}, {sync.cell(r, c['datum'])}): “{tijd}” weggehaald, gelegd zonder tijd.")
+            tijd = ""
         sec = sync.seconds(tijd)
+        made = sync.cell(r, c["makers"])
+        new_makers = corr["makers"].get((jvh.name_key(en), made.strip()))
+        if new_makers:
+            applied["makers"].append(f"Rij {nr} ({a['en']}): {made} → {new_makers}")
+            made = new_makers
         if extra:
             issues["kolom11"].append(f"Rij {nr} ({a['en']}, {sync.cell(r, c['datum'])}): “Column 11” = {extra}, "
                                      f"“Gemaakt door” = {sync.cell(r, c['makers'])}. Alleen “Gemaakt door” wordt overgenomen.")
         if tijd and sec is None:
             issues["tijd"].append(f"Rij {nr} ({a['en']}, {sync.cell(r, c['datum'])}): tijd “{tijd}” → gelegd zonder tijd.")
         if sec is None and dag:
-            issues["zondertijd"].append(f"Rij {nr}: {a['en']} {stukjes} ({eigenaar}), {sync.cell(r, c['datum'])}, "
-                                        f"{sync.cell(r, c['makers'])}")
+            issues["zondertijd"].append(f"Rij {nr}: {a['en']} {stukjes} ({eigenaar}), {sync.cell(r, c['datum'])}, {made}")
         if sec is not None or dag:
             if sec is not None and not dag:
-                issues["zonderdatum"].append(f"Rij {nr}: {a['en']} {stukjes} ({eigenaar}), {tijd}, {sync.cell(r, c['makers'])}")
-            logs.append({"nr": nr, "ex": ex, "tijd": sync.cell(r, c["tijd"]) if sec is not None else "",
-                         "datum": sync.cell(r, c["datum"]), "iso": dag or "", "makers": sync.makers(sync.cell(r, c["makers"])),
-                         "compleet": "ja" if not missend else str(missend), "gefilmd": "ja" if sync.yes(sync.cell(r, c["gefilmd"])) else "nee",
+                issues["zonderdatum"].append(f"Rij {nr}: {a['en']} {stukjes} ({eigenaar}), {tijd}, {made}")
+            logs.append({"nr": nr, "ex": ex, "tijd": tijd if sec is not None else "",
+                         "datum": sync.cell(r, c["datum"]), "iso": dag or "", "makers": sorted({rename(p) for p in sync.makers(made)}, key=str.lower),
+                         "compleet": "nee" if missend is None else "ja" if not missend else str(missend), "gefilmd": "ja" if sync.yes(sync.cell(r, c["gefilmd"])) else "nee",
                          "video_url": sync.cell(r, c["video"])})
     logs.sort(key=lambda l: (l["iso"] or "9999", l["nr"]))
     for i, l in enumerate(logs, start=1):
@@ -252,12 +308,12 @@ def run():
 
     # --- people
     makers = Counter(p for l in logs for p in l["makers"])
-    owners = Counter(e["eigenaar"] for e in exemplaren.values() if e["eigenaar"])
+    owners = Counter(p for e in exemplaren.values() for p in sync.makers(e["eigenaar"]))
     personen = sorted(set(makers) | set(owners), key=str.lower)
 
     write_tabs(afbeeldingen, exemplaren, logs, personen, nk, rows[0] if rows else [])
     write_keuzes(links)
-    write_report(cat, afbeeldingen, links, renamed, issues, exemplaren, logs, makers, owners)
+    write_report(cat, afbeeldingen, links, renamed, issues, applied, exemplaren, logs, makers, owners)
 
 
 # ---------------------------------------------------------------- output
@@ -304,10 +360,10 @@ def pic(a):
     return f"{title}<br><code>{esc(a['id'])}</code>{link}"
 
 
-def write_report(cat, afbeeldingen, links, renamed, issues, exemplaren, logs, makers, owners):
+def write_report(cat, afbeeldingen, links, renamed, issues, applied, exemplaren, logs, makers, owners):
     by_soort = defaultdict(list)
     for l in links.values():
-        if l["hoe"] != "exact":
+        if l["hoe"] not in ("exact", "keuze"):
             by_soort[l["soort"]].append(l)
 
     def link_table(items):
@@ -337,6 +393,15 @@ def write_report(cat, afbeeldingen, links, renamed, issues, exemplaren, logs, ma
       (een <code>afbeelding_id</code>, of <code>nieuw</code> voor een eigen afbeelding) en draai <code>python3 tools/migratie.py</code> opnieuw.
       Er wordt niets in de Sheet geschreven tot je het rapport hebt goedgekeurd.</p>""")
 
+    keuzes = [l for l in links.values() if l["hoe"] == "keuze"]
+    done = [f"<li>Koppeling {SOORT[l['soort']]}: {esc(l['en'] or l['nl'])} → {esc(l['afbeelding']['en'])} "
+            f"<small>({esc(l['afbeelding']['nl'])})</small></li>" for l in sorted(keuzes, key=lambda l: (l["soort"], (l["en"] or l["nl"]).lower()))]
+    done += [f"<li>Versie: {esc(en)} {st} → {esc(a['en'])} <small>({esc(a['nl'])})</small></li>" for en, st, a in applied["versie"]]
+    done += [f"<li>{esc(x)}</li>" for k in ("stukjes", "persoon", "makers", "tijd", "weglaten", "opmerking") for x in applied[k]]
+    if done:
+        sections.append(f"""<h2>Jouw correcties ({len(done)})</h2>
+          <p>Uit <code>keuzes.csv</code> en <code>correcties.json</code>. Klopt dit zo?</p><ul>{''.join(done)}</ul>""")
+
     for soort in ("collectie", "nk", "uitgaves"):
         items = by_soort.get(soort)
         if items:
@@ -363,8 +428,7 @@ def write_report(cat, afbeeldingen, links, renamed, issues, exemplaren, logs, ma
     people = "".join(f"<tr><td>{esc(p)}</td><td>{makers.get(p, 0)}</td><td>{owners.get(p, 0)}</td></tr>"
                      for p in sorted(set(makers) | set(owners), key=lambda p: (-makers.get(p, 0), p.lower())))
     sections.append(f"""<h2>Personen ({len(set(makers) | set(owners))})</h2>
-      <p>Zoals ze in de Sheet staan (hoofdletter aan het begin, spaties weg). Klopt elke naam, en zijn er namen die dezelfde persoon zijn?
-      Let op namen als <i>GJF</i>, <i>Pass-Out</i> en <i>Anne (a Campo)</i>.</p>
+      <p>Na jouw correcties (hoofdletter aan het begin, spaties weg). Klopt elke naam, en zijn er namen die dezelfde persoon zijn?</p>
       <table><tr><th>Naam</th><th>Keer gelegd</th><th>Dozen</th></tr>{people}</table>""")
 
     other = [("tijd", "Tijden die geen tijd zijn"), ("zondertijd", "Gelegd zonder tijd (worden logs zonder tijd)"),

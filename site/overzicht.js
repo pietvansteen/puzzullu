@@ -7,7 +7,7 @@
 
   data()
     .then((d) => {
-      const inBezit = d.exemplaren.filter((e) => e.eigenaar && !e.weg);
+      const inBezit = d.exemplaren.filter((e) => e.eigenaren.length && !e.weg);
       const gelegd = new Set(d.logs.map((l) => l.exemplaar));
       const afbeeldingen = new Set(inBezit.map((e) => e.afbeelding));
       const stukjesPer = Object.fromEntries(d.exemplaren.map((e) => [e.id, e.stukjes || 0]));

@@ -7,7 +7,8 @@ The JvH catalogue, from the two lists in the "digitaal museum" of jvh-puzzels.nl
 catalogue() combines them: every picture of list 1, plus titles of list 2 that are not in list 1
 (derived editions such as "In de drukte!", their own picture with bron "jvh-puzzels"). Combo boxes
 are left out as a picture of their own (their title has "/" or "&" between the names). Every picture
-gets the piece counts of its editions ("versies").
+gets the piece counts of its editions ("versies"); an XXXL edition ("De Storm - XXXL") counts as a version
+of its picture.
 
 Standard library only. Used by sync.py (daily) and tools/migratie.py.
 """
@@ -93,6 +94,16 @@ def is_combo(row):
     return row.get("stukjes", "").lower().startswith("combi") or bool(re.search(r"\s[/&]\s", row.get("first-lang", "")))
 
 
+def base_titles(row):
+    """Titles to look up an edition's picture by: as written, then without " - XXXL" (De Storm - XXXL is
+    the 3162-piece version of De Storm) and the part before "/" (Flea Market/Antique Antics)."""
+    titles = [row.get("first-lang", ""), row.get("second-lang", "")]
+    for t in list(titles):
+        titles.append(re.sub(r"\s*-?\s*XXXL$", "", t, flags=re.I))
+        titles.append(t.split("/")[0])
+    return [t for t in titles if t.strip()]
+
+
 def catalogue(afbeeldingen_html=None, puzzels_html=None):
     """Returns {"afbeeldingen": [...], "puzzels": n, "combi": n}; raises RuntimeError when a page looks wrong."""
     rows1 = parse_table(afbeeldingen_html if afbeeldingen_html is not None else download(AFBEELDINGEN_URL))
@@ -127,7 +138,7 @@ def catalogue(afbeeldingen_html=None, puzzels_html=None):
         if is_combo(r):
             combi += 1
             continue
-        a = by_key.get(name_key(r.get("first-lang", ""))) or by_key.get(name_key(r.get("second-lang", "")))
+        a = next((by_key[k] for k in map(name_key, base_titles(r)) if k in by_key), None)
         if not a:
             a = add(r, "jvh-puzzels", "releasedatum")
         stukjes = re.fullmatch(r"\d+", r.get("stukjes", "").replace(".", ""))

@@ -22,12 +22,10 @@ services:
     command: ["python", "-u", "/app/sync.py"]
     environment:
       SHEET_ID: "1vjYevi2UsbTKv6OzcFz99j65SVbGRbZt_eLIciEVIHA"   # Jan van Haasteren Puzzel Collectie 3.0
-      COLLECTIE_GID: "319446101"     # Puzzel Collectie 2.0 (old layout)
-      UITGAVES_GID: "2072732625"     # Alle uitgaves JvH (old layout)
-      NK_GID: "1005578444"           # Voorronde/finale tijden
-      AFBEELDINGEN_GID: ""           # new tabs, filled in after the migration
-      EXEMPLAREN_GID: ""
-      LOGS_GID: ""
+      AFBEELDINGEN_GID: "1862380862"   # Afbeeldingen
+      EXEMPLAREN_GID: "1821732204"     # Exemplaren
+      LOGS_GID: "1071758480"           # Logs
+      NK_GID: "1140165965"             # NK-tijden
       INTERVAL: "86400"      # once a day; at once after a change on /loggen/
       OUT_FILE: /data/data.json
       TZ: Europe/Amsterdam

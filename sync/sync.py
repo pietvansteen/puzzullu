@@ -6,10 +6,10 @@ Runs once a day by default, and at once when the API asks for it (the file sync-
 Standard library only, no pip needed.
 
 The Sheet has two layouts:
-  - new (after the migration): tabs Afbeeldingen, Exemplaren, Logs and NK-tijden, read when
-    AFBEELDINGEN_GID, EXEMPLAREN_GID and LOGS_GID are set;
-  - old (until then): Puzzel Collectie 2.0 (one row per log or per box), Alle uitgaves JvH and
-    Voorronde/finale tijden. Names are matched loosely; the real clean-up is the migration.
+  - new (since the migration of 28-10-2026): tabs Afbeeldingen, Exemplaren, Logs and NK-tijden;
+  - old (before it): Puzzel Collectie 2.0 (one row per log or per box), Alle uitgaves JvH and
+    Voorronde/finale tijden, read only when COLLECTIE_GID is set and the new tabs are missing.
+    Names are matched loosely; the real clean-up was the migration.
 Both give the same data.json.
 
 Once a day it also fetches the JvH catalogue (jvh.py) into jvh.json, which adds the known piece counts
@@ -18,15 +18,13 @@ to the Afbeeldingen tab goes through the Apps Script (step 4). sync-now with {"j
 
 Settings via environment variables (see docker-compose.yml):
   SHEET_ID          ID of the Google Sheet (Jan van Haasteren Puzzel Collectie 3.0)
-  COLLECTIE_GID     gid of "Puzzel Collectie 2.0" (old layout)
-  UITGAVES_GID      gid of "Alle uitgaves JvH" (old layout)
-  NK_GID            gid of "Voorronde/finale tijden" or, after the migration, "NK-tijden"
-  AFBEELDINGEN_GID / EXEMPLAREN_GID / LOGS_GID   gids of the new tabs (empty = old layout)
+  AFBEELDINGEN_GID / EXEMPLAREN_GID / LOGS_GID / NK_GID   gids of the tabs Afbeeldingen, Exemplaren, Logs, NK-tijden
+  COLLECTIE_GID / UITGAVES_GID   gids of the old tabs (empty by default; only for the old layout)
   OUT_FILE          output path (default /data/data.json)
   INTERVAL          seconds between two syncs (default 86400); 0 = run once
   JVH_FILE          the JvH catalogue (default jvh.json next to OUT_FILE), fetched at most once a day
   JVH_SCRAPE        0 = never fetch the JvH catalogue (use the file as it is)
-  <NAME>_CSV        optional: a local CSV file instead of Google, e.g. COLLECTIE_CSV=testdata/collectie.csv
+  <NAME>_CSV        optional: a local CSV file instead of Google, e.g. LOGS_CSV=testdata/logs.csv
 
   python3 sync/sync.py --snapshot testdata   saves every tab as testdata/<name>.csv (for CSV=1 in tools/dev.py)
 """
@@ -46,12 +44,12 @@ from jvh import name_key, slug
 
 SHEET_ID = os.environ.get("SHEET_ID", "1vjYevi2UsbTKv6OzcFz99j65SVbGRbZt_eLIciEVIHA")
 GIDS = {
-    "COLLECTIE": os.environ.get("COLLECTIE_GID", "319446101"),
-    "UITGAVES": os.environ.get("UITGAVES_GID", "2072732625"),
-    "NK": os.environ.get("NK_GID", "1005578444"),
-    "AFBEELDINGEN": os.environ.get("AFBEELDINGEN_GID", ""),
-    "EXEMPLAREN": os.environ.get("EXEMPLAREN_GID", ""),
-    "LOGS": os.environ.get("LOGS_GID", ""),
+    "COLLECTIE": os.environ.get("COLLECTIE_GID", ""),  # old layout, 319446101 (only read when set)
+    "UITGAVES": os.environ.get("UITGAVES_GID", ""),    # old layout, 2072732625
+    "NK": os.environ.get("NK_GID", "1140165965"),
+    "AFBEELDINGEN": os.environ.get("AFBEELDINGEN_GID", "1862380862"),
+    "EXEMPLAREN": os.environ.get("EXEMPLAREN_GID", "1821732204"),
+    "LOGS": os.environ.get("LOGS_GID", "1071758480"),
 }
 OUT_FILE = os.environ.get("OUT_FILE", "/data/data.json")
 INTERVAL = int(os.environ.get("INTERVAL", "86400"))
@@ -145,7 +143,12 @@ def person(s):
 
 
 def makers(s):
+    """Comma-separated names, also for owners (a box can have more than one owner)."""
     return sorted({person(m) for m in (s or "").split(",") if m.strip()}, key=str.lower)
+
+
+# old layout: Puzzullu is no longer an owner, "Lau & Dix" are the two owners Dixie and Lauren (SPEC §9)
+OLD_OWNERS = {"puzzullu": "", "lau & dix": "Dixie, Lauren"}
 
 
 def missing(s):
@@ -180,8 +183,8 @@ def parse_new(tabs):
                 nr=("volgnummer",), missend=("missende",), status=("status",))
     exemplaren = [{
         "id": cell(r, c["id"]), "afbeelding": cell(r, c["afb"]), "stukjes": number(cell(r, c["stukjes"])),
-        "eigenaar": person(cell(r, c["eigenaar"])), "volgnummer": number(cell(r, c["nr"])) or 1,
-        "missend": missing(cell(r, c["missend"])) or 0, "weg": cell(r, c["status"]).lower() == "weg",
+        "eigenaren": makers(cell(r, c["eigenaar"])), "volgnummer": number(cell(r, c["nr"])) or 1,
+        "missend": missing(cell(r, c["missend"]) or "0"), "weg": cell(r, c["status"]).lower() == "weg",
     } for r in rows[1:] if cell(r, c["id"])]
 
     rows = tabs["LOGS"]
@@ -239,12 +242,11 @@ def parse_old(tabs):
             unmatched.add(en or nl)
             a = add_afbeelding(en, nl, bron="collectie")
         stukjes = number(cell(r, c["stukjes"]))
-        eigenaar = person(cell(r, c["eigenaar"]))
-        if eigenaar.lower() == "puzzullu":  # no longer an owner (SPEC §9)
-            eigenaar = ""
-        ex_id = f"{a['id']}-{stukjes or 0}-{slug(eigenaar) or 'zonder'}"
+        eigenaar = cell(r, c["eigenaar"])
+        eigenaren = makers(OLD_OWNERS.get(" ".join(eigenaar.lower().split()), eigenaar))
+        ex_id = f"{a['id']}-{stukjes or 0}-{slug('-'.join(eigenaren)) or 'zonder'}"
         ex = exemplaren.setdefault(ex_id, {"id": ex_id, "afbeelding": a["id"], "stukjes": stukjes,
-                                           "eigenaar": eigenaar, "volgnummer": 1, "missend": 0, "weg": False})
+                                           "eigenaren": eigenaren, "volgnummer": 1, "missend": 0, "weg": False})
         if "verkocht" in cell(r, c["extra"]).lower():
             ex["weg"] = True
         sec, dag = seconds(cell(r, c["tijd"])), iso_date(cell(r, c["datum"]))
@@ -256,7 +258,7 @@ def parse_old(tabs):
                          "makers": makers(cell(r, c["makers"])), "missend": m,
                          "gefilmd": yes(cell(r, c["gefilmd"])), "video": cell(r, c["video"])})
     for ex_id, (_, m) in last_missing.items():
-        exemplaren[ex_id]["missend"] = m if m is not None else 1
+        exemplaren[ex_id]["missend"] = m
     if unmatched:
         log(f"{len(unmatched)} name(s) in Puzzel Collectie 2.0 not found in Alle uitgaves JvH "
             f"(added as their own puzzle until the migration): {', '.join(sorted(unmatched)[:10])}"
@@ -338,7 +340,7 @@ def build(tabs):
     if missing_jvh:
         log(f"{len(missing_jvh)} JvH picture(s) not in the Sheet yet: "
             f"{', '.join(c['nl'] for c in missing_jvh[:8])}{' …' if len(missing_jvh) > 8 else ''}")
-    personen = sorted({m for l in logs for m in l["makers"]} | {e["eigenaar"] for e in exemplaren if e["eigenaar"]},
+    personen = sorted({m for l in logs for m in l["makers"]} | {p for e in exemplaren for p in e["eigenaren"]},
                       key=str.lower)
     return {
         "updated": datetime.now(timezone.utc).isoformat(timespec="seconds"),

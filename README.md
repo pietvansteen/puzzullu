@@ -15,7 +15,7 @@ Google Sheet ──(dagelijks, of meteen)──> sync ──> data/data.json ─
 | `site/` | De website: `index.html` + `overzicht.js` (overzicht), `wat-is-nieuw/` (release notes), `shared.js`, `style.css`, `logo.svg`. Later ook `statistieken/`, `generator/` en `loggen/` |
 | `sync/sync.py` | Haalt de tabbladen van de Sheet op als CSV en schrijft `data/data.json` |
 | `sync/jvh.py` | Haalt één keer per dag de JvH-catalogus op (alle afbeeldingen en alle uitgaves) uit het digitaal museum van jvh-puzzels.nl |
-| `tools/migratie.py` | Eenmalig: zet de oude tabbladen om naar de nieuwe, met een rapport om eerst te controleren |
+| `tools/migratie.py` | Eenmalig (gedaan op 28-10-2026): zette de oude tabbladen om naar de nieuwe, met een rapport om eerst te controleren |
 | `api/api.py` | Kleine API achter het wachtwoord: de Sheet nu bijwerken, en (later) tijden loggen en de collectie aanpassen via de Apps Script |
 | `web/nginx.conf` | Serveert de site en `data.json`, en stuurt `/api/` door naar de API |
 | `tools/release.py` | Zet de nieuwste versie uit `site/changelog.json` in de footer en op de links naar css/js/svg |
@@ -26,13 +26,13 @@ Er zijn geen pip-pakketten nodig: alles draait op standaard Python.
 
 ## Wat er uit de Sheet komt
 
-Tot de migratie leest de sync de huidige tabbladen:
+- **Afbeeldingen**: elke puzzelplaat één keer, met Engelse en Nederlandse naam, tekenaar, jaar, moeilijkheid (rating 1–5) en de link naar jvh-puzzels.nl.
+- **Exemplaren**: elke doos: welke afbeelding, hoeveel stukjes, van wie (één of meer eigenaren), hoeveel stukjes er missen en of hij weg is.
+- **Logs**: elke keer dat we een doos gelegd hebben: tijd, datum, wie, compleet, gefilmd en video-link.
+- **NK-tijden**: de winnende tijden van het NK, voor de vergelijking na het loggen.
+- **Personen**: alle namen, voor de keuzelijsten.
 
-- **Puzzel Collectie 2.0**: één rij per keer gelegd (of per doos die nog niet gelegd is): naam (Engels en Nederlands), aantal stukjes, eigenaar, compleet, tijd, datum, gemaakt door, gefilmd, video-link.
-- **Alle uitgaves JvH**: alle afbeeldingen met tekenaar, jaar en moeilijkheid (rating 1–5).
-- **Voorronde/finale tijden**: de winnende tijden van het NK, voor de vergelijking na het loggen.
-
-Na de migratie komen daar de nieuwe tabbladen **Afbeeldingen**, **Exemplaren**, **Logs** en **NK-tijden** voor in de plaats. Hun gid's komen dan in `docker-compose.yml`.
+Hun gid's staan in `docker-compose.yml`. De oude tabbladen (*Puzzel Collectie 2.0*, *Alle uitgaves JvH*, *Voorronde/finale tijden*) zijn op 28-10-2026 overgezet met `tools/migratie.py` en worden niet meer gelezen.
 
 De Sheet moet gedeeld zijn als *Iedereen met de link kan bekijken*, en de tijdzone (*Bestand > Instellingen*) moet Europe/Amsterdam zijn.
 

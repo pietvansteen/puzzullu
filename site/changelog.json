@@ -1,4 +1,11 @@
 [
+ {"version": "0.2.0",
+  "date": "2026-10-28",
+  "changes": [
+  "Alle puzzels, dozen en tijden staan nu in nieuwe tabbladen in de Sheet, met de namen zoals Jan van Haasteren ze schrijft.",
+  "Bij elke puzzel staat welke versies (aantallen stukjes) er bestaan. Elke dag halen we de nieuwste puzzels op van jvh-puzzels.nl.",
+  "Een doos kan nu meer dan één eigenaar hebben."
+ ]},
  {"version": "0.1.0",
   "date": "2026-10-27",
   "changes": [
