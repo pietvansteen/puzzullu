@@ -8,11 +8,14 @@
   const lijst = $("lijst");
 
   // steps of the time slider, in seconds; the first step is "no lower limit", the last "no upper limit"
-  const TIJDEN = [0, 900, 1800, 2700, 3600, 4500, 5400, 6300, 7200, 9000, 10800, 14400, 21600, 43200, null];
+  // (every 5 minutes up to 2 hours, then bigger steps)
+  const TIJDEN = [...Array.from({ length: 25 }, (_, i) => i * 300), 9000, 10800, 14400, 21600, 43200, null];
   const LAATSTE = TIJDEN.length - 1;
   const VAAK = 5; // makers with more logs than this are always shown; the rest behind "Meer namen"
-  const OPSLAG = "pz-overzicht-v2";
-  const standaard = { zoek: "", stukjes: [], eigenaren: [], makers: [], samen: false, alleMakers: false,
+  // how many makers: solo, duo, 3, team (4, as at the NK) and 5 or more
+  const GROEPEN = [[1, "Solo"], [2, "Duo"], [3, "Met z'n drieën"], [4, "Team (4)"], [5, "5 of meer"]];
+  const OPSLAG = "pz-overzicht-v3";
+  const standaard = { zoek: "", stukjes: [], eigenaren: [], makers: [], samen: false, alleMakers: false, groep: [],
     van: 0, tot: LAATSTE, snelste: false, sort: "az", tekenaar: false, rating: true, alles: false };
   let st = { ...standaard };
   try { st = { ...standaard, ...JSON.parse(localStorage.getItem(OPSLAG) || "{}"), zoek: "" }; } catch (e) { /* private window */ }
@@ -94,6 +97,7 @@
     $("f-stukjes").innerHTML = D.stukjes.map((v) => chip("stukjes", v)).join("");
     $("f-eigenaar").innerHTML = D.eigenaren.map((v) => chip("eigenaren", v)).join("");
     makerChips();
+    $("f-groep").innerHTML = GROEPEN.map(([v, label]) => chip("groep", v, label)).join("");
     $("f-van").max = $("f-tot").max = LAATSTE;
     $("f-van").value = st.van;
     $("f-tot").value = st.tot;
@@ -127,7 +131,7 @@
       const b = ev.target.closest(".chip");
       if (!b) return;
       const key = b.dataset.key;
-      const v = key === "stukjes" ? Number(b.dataset.v) : b.dataset.v;
+      const v = key === "stukjes" || key === "groep" ? Number(b.dataset.v) : b.dataset.v;
       st[key] = st[key].includes(v) ? st[key].filter((x) => x !== v) : [...st[key], v];
       b.setAttribute("aria-pressed", st[key].includes(v));
       if (key === "makers") makerChips();
@@ -156,7 +160,7 @@
       $(id).addEventListener("change", () => { st[key] = $(id).checked; wijzig(); });
     }
     $("wis").addEventListener("click", () => {
-      st = { ...st, zoek: "", stukjes: [], eigenaren: [], makers: [], van: 0, tot: LAATSTE };
+      st = { ...st, zoek: "", stukjes: [], eigenaren: [], makers: [], groep: [], van: 0, tot: LAATSTE };
       bouwFilters();
       wijzig();
     });
@@ -194,12 +198,15 @@
     // so "longer than 1:00:00" finds versions never done under the hour, including versions not done yet
     const perVersie = tijdFilter && st.snelste;
     const binnen = (sec) => (van == null || sec >= van) && (tot == null || sec < tot);
-    const aantalFilters = (st.stukjes.length > 0) + (st.eigenaren.length > 0) + (st.makers.length > 0) + tijdFilter;
+    const aantalFilters = (st.stukjes.length > 0) + (st.eigenaren.length > 0) + (st.makers.length > 0)
+      + (st.groep.length > 0) + tijdFilter;
     $("nfilters").textContent = aantalFilters ? `(${aantalFilters})` : "";
     $("wis").hidden = !aantalFilters && !st.zoek;
 
-    const logFilter = st.makers.length > 0 || tijdFilter;
-    const maker = st.samen ? (l) => st.makers.every((m) => l.makers.includes(m)) : (l) => !st.makers.length || st.makers.some((m) => l.makers.includes(m));
+    const logFilter = st.makers.length > 0 || st.groep.length > 0 || tijdFilter;
+    const wie = st.samen ? (l) => st.makers.every((m) => l.makers.includes(m)) : (l) => !st.makers.length || st.makers.some((m) => l.makers.includes(m));
+    const groep = (l) => !st.groep.length || st.groep.includes(Math.min(l.makers.length, 5));
+    const maker = (l) => wie(l) && groep(l);
     const zoek = st.zoek.trim().toLowerCase();
     const zichtbaar = [];
     for (const a of D.afbeeldingen) {
