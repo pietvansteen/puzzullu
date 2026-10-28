@@ -1,4 +1,10 @@
 [
+ {"version": "0.4.3",
+  "date": "2026-10-28",
+  "changes": [
+  "Op smallere telefoons of met grotere letters blijft de lijst met puzzels binnen het scherm.",
+  "Inzoomen op de pagina kan niet meer, zodat de site als een app aanvoelt."
+ ]},
  {"version": "0.4.2",
   "date": "2026-10-28",
   "changes": [
