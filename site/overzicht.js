@@ -208,7 +208,9 @@
     range.style.setProperty("--van", st.van / LAATSTE);
     range.style.setProperty("--tot", st.tot / LAATSTE);
     const tijdFilter = van != null || tot != null;
-    $("snelste-optie").hidden = !tijdFilter;
+    // the option stays in place (greyed out without a time filter): showing it would move the page under a finger on the slider
+    $("snelste-optie").classList.toggle("uit", !tijdFilter);
+    $("snelste").disabled = !tijdFilter;
     // "fastest time counts": the time filter looks at the best time of each version (of the chosen makers),
     // so "longer than 1:00:00" finds versions never done under the hour, including versions not done yet
     const perVersie = tijdFilter && st.snelste;

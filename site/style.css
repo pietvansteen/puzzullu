@@ -163,6 +163,7 @@ legend { padding: 0; margin-bottom: 6px; font: 500 .95rem/1.3 var(--f-display); 
 .optie { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; margin-top: 8px; font: 400 .95rem/1.4 var(--f-body); cursor: pointer; }
 .optie input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); }
 .optie small { grid-column: 2; color: var(--muted); font-size: .85rem; }
+.optie.uit { opacity: .45; cursor: default; }
 .slider output { font-family: var(--f-body); font-weight: 700; color: var(--accent); }
 /* two handles on one track: the inputs lie on top of each other, only their thumbs catch the pointer */
 .range2 {
