@@ -231,6 +231,9 @@
   // ---------------------------------------------------------------- after saving: cheers, NK, records
 
   const CAT = { 1: "solo", 2: "duo", 4: "team" };
+  // group sizes as on the overview: 1, 2, 3, 4, and 5 or more together
+  const GROOTTE = { 1: "solo", 2: "als duo", 3: "met z'n drieën", 4: "als team", 5: "met 5 of meer" };
+  const grootte = (l) => Math.min(l.makers.length, 5);
 
   function verschil(sec) {
     const u = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = sec % 60;
@@ -243,18 +246,28 @@
     const regels = [`<p class="groot">${JUICH[Math.floor(Math.random() * JUICH.length)]} 🎉</p>`,
       `<p><b>${esc(a.naam)}</b> (${e.stukjes || "?"} stukjes)${l.sec != null ? ` in <b>${tijd(l.sec)}</b>` : ""} is opgeslagen.</p>`];
     if (l.sec != null) {
-      // records: the fastest time ever on this version, and the fastest of this team (the same people)
+      // compare only like with like: the same version (picture + pieces) and the same number of people
+      const wie = GROOTTE[grootte(l)];
       const versie = new Set(D.exemplaren.filter((x) => x.afbeelding === e.afbeelding && x.stukjes === e.stukjes).map((x) => x.id));
-      const eerder = D.logs.filter((x) => versie.has(x.exemplaar) && x.sec != null);
-      const team = eerder.filter((x) => x.makers.join() === l.makers.join());
+      const eerder = D.logs.filter((x) => versie.has(x.exemplaar) && x.sec != null && grootte(x) === grootte(l));
+      // the previous time: the most recent one up to the date of this log
+      const vorige = eerder.filter((x) => !l.datum || !x.datum || x.datum <= l.datum)
+        .sort((x, y) => (x.datum || "").localeCompare(y.datum || "") || x.id.localeCompare(y.id)).pop();
+      if (vorige) {
+        const d = l.sec - vorige.sec;
+        const wanneer = `${tijd(vorige.sec)}${vorige.datum ? ` op ${datum(vorige.datum)}` : ""}${vorige.makers.join() !== l.makers.join() ? `, ${esc(vorige.makers.join(", "))}` : ""}`;
+        regels.push(d === 0 ? `<p>⏱️ Precies even snel als de vorige keer ${wie} (${wanneer}).</p>`
+          : `<p>⏱️ ${verschil(Math.abs(d))} ${d < 0 ? "sneller" : "langzamer"} dan de vorige keer ${wie} (${wanneer}).</p>`);
+      }
       const snelst = Math.min(...eerder.map((x) => x.sec));
+      const team = eerder.filter((x) => x.makers.join() === l.makers.join());
       const teamSnelst = Math.min(...team.map((x) => x.sec));
-      if (eerder.length && l.sec < snelst) regels.push(`<p>🏆 Snelste tijd ooit op deze puzzel! Het oude record was ${tijd(snelst)}.</p>`);
+      if (!eerder.length) regels.push(`<p>De eerste tijd ${wie} op deze puzzel.</p>`);
+      else if (l.sec < snelst) regels.push(`<p>🏆 Snelste tijd ooit ${wie} op deze puzzel! Het oude record was ${tijd(snelst)}.</p>`);
       else if (team.length && l.sec < teamSnelst) regels.push(`<p>⭐ Persoonlijk record met deze groep! Vorige keer op z'n snelst ${tijd(teamSnelst)}.</p>`);
-      else if (!eerder.length) regels.push("<p>De eerste tijd op deze puzzel.</p>");
-      // the NK: only with as many people as the category (solo 1, duo 2, team 4)
+      // the NK: only with as many people as the category (solo 1, duo 2, team 4) and the same number of pieces
       const cat = CAT[l.makers.length];
-      const nk = cat ? (D.nk || []).filter((n) => n.afbeelding === e.afbeelding && n.categorie === cat) : [];
+      const nk = cat ? (D.nk || []).filter((n) => n.afbeelding === e.afbeelding && n.categorie === cat && n.stukjes && n.stukjes === e.stukjes) : [];
       if (nk.length) {
         const n = nk.reduce((b, x) => (Math.abs(x.sec - l.sec) < Math.abs(b.sec - l.sec) ? x : b));
         const wat = `de nummer 1 van de ${n.ronde || "wedstrijd"} van het NK ${n.jaar || ""}`.replace(/\s+$/, "");

@@ -281,7 +281,7 @@ def parse_nk(rows, afbeeldingen):
     if not rows:
         return []
     c = columns(rows[0], puzzel=("gemaakte puzzel", "puzzel"), jaar=("jaar",), tijd=("tijd",),
-                cat=("team",), ronde=("voorronde",), afb=("afbeelding_id",))
+                cat=("team",), ronde=("voorronde",), afb=("afbeelding_id",), stukjes=("stukjes",))
     by_name = {}
     for a in afbeeldingen:
         for k in (name_key(a["nl"]), name_key(a["en"])):
@@ -292,6 +292,7 @@ def parse_nk(rows, afbeeldingen):
         if not cell(r, c["puzzel"]) or sec is None:
             continue
         nk.append({"puzzel": cell(r, c["puzzel"]), "jaar": number(cell(r, c["jaar"])), "sec": sec,
+                   "stukjes": number(cell(r, c["stukjes"])),
                    "categorie": cell(r, c["cat"]).lower(), "ronde": cell(r, c["ronde"]).lower(),
                    "afbeelding": cell(r, c["afb"]) or by_name.get(name_key(cell(r, c["puzzel"])), "")})
     return nk
