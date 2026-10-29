@@ -28,6 +28,7 @@
     $("tijd-datum").value = vandaag();
     tekenMakers();
     tekenVideos();
+    vanGenerator();
   }
 
   function toonLogin(fout) {
@@ -148,7 +149,9 @@
   const tekenMakers = () => makers.teken();
   let tijdAfb = null, tijdDoos = null;
 
-  zoeker("tijd-zoek", "tijd-sugg", (a) => exVan(a.id).some((e) => !e.weg), (a) => {
+  zoeker("tijd-zoek", "tijd-sugg", (a) => exVan(a.id).some((e) => !e.weg), kiesPuzzel);
+
+  function kiesPuzzel(a) {
     tijdAfb = a;
     tijdDoos = null;
     const exs = exVan(a.id).filter((e) => !e.weg).sort((x, y) => (x.stukjes || 0) - (y.stukjes || 0));
@@ -157,7 +160,17 @@
       ? exs.map((e) => `<label><input type="radio" name="doos" value="${esc(e.id)}"${exs.length === 1 ? " checked" : ""}> ${esc(doosNaam(e))}${missendTekst(e)}</label>`).join("")
       : '<p class="muted">Niemand heeft deze puzzel (meer). Voeg eerst een doos toe bij Dozen.</p>';
     if (exs.length === 1) kiesDoos(exs[0]);
-  });
+  }
+
+  // from the generator: /loggen/?doos=<id> chooses that box
+  function vanGenerator() {
+    const e = D.exemplaren.find((x) => x.id === new URLSearchParams(location.search).get("doos") && !x.weg);
+    if (!e || !D.afb[e.afbeelding]) return;
+    $("tijd-zoek").value = D.afb[e.afbeelding].naam;
+    kiesPuzzel(D.afb[e.afbeelding]);
+    const r = document.querySelector(`input[name=doos][value="${CSS.escape(e.id)}"]`);
+    if (r) { r.checked = true; kiesDoos(e); }
+  }
 
   const missendTekst = (e) => (e.missend == null ? ' <span class="min">(−?)</span>' : e.missend ? ` <span class="min">(−${e.missend})</span>` : "");
 

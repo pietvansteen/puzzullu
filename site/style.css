@@ -446,6 +446,17 @@ legend { padding: 0; margin-bottom: 6px; font: 500 .95rem/1.3 var(--f-display); 
 .feest-tekst p { margin: 0; }
 .feest .groot { font: 600 1.5rem/1.2 var(--f-display); }
 
+/* ---------- Generator ---------- */
+.lot { gap: 18px; padding: 22px 18px; }
+#uitslag { display: grid; gap: 6px; min-height: 7.5em; align-content: center; }
+.lot-titel { font: 600 clamp(1.5rem, 6vw, 2.1rem)/1.15 var(--f-display); overflow-wrap: anywhere; }
+.lot-nl { color: var(--muted); }
+.lot-doos { font-size: 1.05rem; }
+.lot .sterren { color: var(--accent); letter-spacing: 1px; }
+.schud .lot-titel { opacity: .75; }
+.knop.tweede { background: none; border: 1px solid var(--accent); color: var(--accent); text-decoration: none; }
+.filter-body .klein { margin: 6px 0 0; font-size: .85rem; }
+
 /* ---------- What's new ---------- */
 .changes { display: grid; gap: 14px; margin: 18px 0 30px; }
 .release {
