@@ -491,3 +491,61 @@ footer.wrap {
   font-size: .9rem;
 }
 footer a { color: var(--muted); }
+
+/* ---------- Statistics ---------- */
+.stats .blok { margin: 30px 0; }
+.stats .blok > h2 { font-size: 1.45rem; }
+.stats h3 { font-size: 1.1rem; margin: 18px 0 8px; }
+.stats .klein { font-size: .85rem; margin: 6px 0 0; }
+.feitje { gap: 6px; margin-top: 18px; }
+.feitje-kop { font: 600 .95rem/1.2 var(--f-display); color: var(--accent); }
+.feitje-tekst { font-size: 1.08rem; min-height: 3.2em; }
+.feitje .link-btn { justify-self: start; }
+.balken { display: grid; gap: 6px; }
+.balk { display: grid; grid-template-columns: 6.5em minmax(0, 1fr) 8.5em; align-items: center; gap: 10px; }
+.balk-label { color: var(--muted); font-size: .92rem; }
+.balk-spoor { height: 14px; }
+.balk-vul { display: block; height: 100%; min-width: 3px; background: var(--accent); border-radius: 0 4px 4px 0; }
+.balk-getal small { color: var(--muted); }
+.tabel-wrap { overflow-x: auto; }
+.tabel { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.tabel th { text-align: left; font: 500 .85rem/1.3 var(--f-display); color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.tabel td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tabel tfoot td { font-weight: 700; border-bottom: 0; }
+.tabel .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tabel small { display: block; font-size: .8rem; white-space: normal; }
+.twee { display: grid; gap: 10px 28px; }
+@media (min-width: 720px) { .twee { grid-template-columns: 1fr 1fr; } }
+.top { margin: 0; padding: 0; list-style: none; counter-reset: top; display: grid; gap: 4px; }
+.top li { counter-increment: top; display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.top li::before { content: counter(top) "."; color: var(--muted); width: 1.8em; flex: none; }
+.top li > span:first-of-type { flex: 1; min-width: 0; }
+.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.plus { color: #8fe3a5; }
+.min { color: #ff9e8a; }
+.select select { max-width: 100%; }
+.stats .select { flex-wrap: wrap; margin-top: 4px; }
+.grafiek { display: block; width: 100%; height: auto; margin-top: 8px; }
+.grafiek .raster { stroke: var(--line); stroke-width: 1; }
+.grafiek .as { fill: var(--muted); font: 12px var(--f-body); }
+.grafiek .trend { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.grafiek .punt { fill: #8ea6d8; stroke: var(--paper); stroke-width: 2; }
+.grafiek .punt:hover { fill: var(--ink); }
+.legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: .85rem; margin: 4px 0 0; }
+.legenda .stip { width: 10px; height: 10px; border-radius: 50%; background: #8ea6d8; }
+.legenda .lijntje { width: 18px; height: 3px; border-radius: 2px; background: var(--accent); margin-left: 8px; }
+.tegen, .vaak, .nk-nog ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.tegen details, .vaak details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+.tegen summary, .vaak summary, .nk-nog summary { cursor: pointer; }
+.duel { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.duel li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; padding: 4px 0; border-top: 1px solid var(--line); font-size: .92rem; }
+.vaak .duel li { grid-template-columns: 5.2em minmax(0, 1fr) auto; }
+.nk-nog { margin-top: 14px; }
+.nk-nog ul { margin-top: 8px; font-size: .92rem; }
+#vaak-meer { margin-top: 8px; }
+@media (max-width: 420px) {
+  .tabel { font-size: .86rem; }
+  .tabel th, .tabel td { padding: 6px 4px; }
+  .balk { grid-template-columns: 5.6em minmax(0, 1fr) 7.6em; gap: 8px; }
+  .duel li { font-size: .85rem; gap: 4px 8px; }
+}

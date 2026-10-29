@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0f1f3f">
+<style>html { background: #0f1f3f; color-scheme: dark; }</style>
+<title>Statistieken · Puzzullu</title>
+<meta name="description" content="Statistieken van Puzzullu: hoeveel puzzels we hebben en gelegd hebben, wie het snelst is en hoe we het doen tegen het NK.">
+<link rel="icon" href="/logo.svg?v=0.6.0-f66305" type="image/svg+xml">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Puzzullu">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="/style.css?v=0.6.0-f66305">
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/" aria-label="Puzzullu, overzicht">
+    <img src="/logo.svg?v=0.6.0-f66305" width="44" height="44" alt="">
+    <span>Puzzullu</span>
+  </a>
+  <nav class="nav" aria-label="Pagina's">
+    <a href="/">Overzicht</a>
+    <a href="/statistieken/" aria-current="page">Statistieken</a>
+    <a href="/generator/">Generator</a>
+  </nav>
+</header>
+
+<main class="wrap stats">
+  <section class="hero">
+    <h1>Statistieken</h1>
+    <p>Alles wat we hebben en gelegd hebben, in getallen. Wie is het snelst, worden we beter, en hoe doen we het tegen het NK?</p>
+  </section>
+  <ul class="tiles" id="tiles" aria-live="polite"><li class="empty">Laden…</li></ul>
+
+  <section class="card feitje" aria-live="polite">
+    <p class="feitje-kop">Wist je dat…</p>
+    <p class="feitje-tekst" id="feitje"></p>
+    <button type="button" class="link-btn" id="nog-feitje">Nog een feitje</button>
+  </section>
+
+  <section class="blok">
+    <h2>Gelegd per jaar</h2>
+    <div class="balken" id="per-jaar"></div>
+  </section>
+
+  <section class="blok">
+    <h2>Per persoon</h2>
+    <p class="muted">Een puzzel telt voor iedereen die meedeed. Puzzeltijd is de tijd waarin iemand meepuzzelde.</p>
+    <div class="tabel-wrap"><table class="tabel" id="per-persoon"></table></div>
+  </section>
+
+  <section class="blok">
+    <h2>De collectie</h2>
+    <div class="twee">
+      <div><h3>Per eigenaar</h3><div class="tabel-wrap"><table class="tabel" id="per-eigenaar"></table></div>
+        <p class="muted klein">Een doos van twee mensen telt bij allebei, en in het totaal één keer.</p></div>
+      <div><h3>Per aantal stukjes</h3><div class="tabel-wrap"><table class="tabel" id="per-stukjes"></table></div></div>
+    </div>
+  </section>
+
+  <section class="blok">
+    <h2>Meest gelegd</h2>
+    <ol class="top" id="meest"></ol>
+    <p class="muted" id="videos"></p>
+  </section>
+
+  <section class="blok">
+    <h2>Vergelijken</h2>
+    <label class="select">Kies een persoon of team
+      <select id="team"></select>
+    </label>
+    <p class="muted klein">Een team is precies dezelfde groep mensen. Alleen tijden met evenveel mensen worden vergeleken.</p>
+    <div id="progressie"></div>
+    <div id="tegen"></div>
+  </section>
+
+  <section class="blok">
+    <h2>Vaak gelegd</h2>
+    <p class="muted">Versies (zelfde puzzel, zelfde aantal stukjes) die we minstens 3 keer met tijd gelegd hebben.</p>
+    <ul class="vaak" id="vaak"></ul>
+    <button type="button" class="link-btn" id="vaak-meer" hidden></button>
+  </section>
+
+  <section class="blok">
+    <h2>Tegen het NK</h2>
+    <p class="muted">Onze snelste tijd op puzzels van het Nederlands Kampioenschap, tegen de winnaar. Alleen met evenveel mensen als de categorie (solo 1, duo 2, team 4) en met evenveel stukjes.</p>
+    <p id="nk-kop"></p>
+    <div class="tabel-wrap"><table class="tabel" id="nk"></table></div>
+    <details class="nk-nog"><summary id="nk-nog-kop"></summary><ul id="nk-nog"></ul></details>
+  </section>
+
+  <p class="muted" id="updated"></p>
+</main>
+
+<footer class="wrap"><span>Puzzullu</span> <a class="version" href="/wat-is-nieuw/">v0.6.0 · Wat is nieuw</a></footer>
+<script src="/shared.js?v=0.6.0-f66305"></script>
+<script src="/statistieken/statistieken.js?v=0.6.0-f66305"></script>
+</body>
+</html>

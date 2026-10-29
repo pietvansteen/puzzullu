@@ -1,7 +1,12 @@
 [
- {"version": "0.5.0",
+ {"version": "0.6.0",
   "date": "2026-10-30",
   "changes": [
+  "De [statistieken](/statistieken/): hoeveel we hebben en gelegd hebben, per jaar, per persoon, per eigenaar en per aantal stukjes, en de meest gelegde puzzels.",
+  "Elke keer een ander grappig feitje, zoals de langste reeks dagen achter elkaar of hoeveel kilometer stukjes we gelegd hebben.",
+  "Vergelijken: kies een persoon of team en zie hoeveel sneller ze op 1000 stukjes zijn geworden, met een grafiek, en hoe ze het doen tegen anderen met evenveel mensen.",
+  "De puzzels die we vaak gelegd hebben, met alle tijden onder elkaar en het verschil tussen de eerste en de laatste keer.",
+  "Tegen het NK: onze snelste tijd op NK-puzzels naast die van de winnaar, en welke NK-puzzels we nog niet zo gelegd hebben.",
   "De [generator](/generator/): weet je niet wat je gaat leggen, dan kiest hij een doos voor je. Filter op van wie, aantal stukjes, moeilijkheid en wie de puzzel nog niet gemaakt heeft.",
   "Bij de gekozen puzzel zie je hoe vaak we die versie al gelegd hebben en de snelste tijd. Met Nog een keer kies je een andere.",
   "Kies je bij Nog niet gemaakt door meerdere namen, dan kies je of ze hem samen nog niet gelegd hebben (als duo, team of groep) of geen van hen."
