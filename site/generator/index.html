@@ -8,7 +8,7 @@
 <style>html { background: #0f1f3f; color-scheme: dark; }</style>
 <title>Generator · Puzzullu</title>
 <meta name="description" content="Weet je niet welke Jan van Haasteren je gaat leggen? De generator kiest een doos voor je.">
-<link rel="icon" href="/logo.svg?v=0.5.0-48073e" type="image/svg+xml">
+<link rel="icon" href="/logo.svg?v=0.5.0-084aca" type="image/svg+xml">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Puzzullu">
@@ -18,12 +18,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="/style.css?v=0.5.0-48073e">
+<link rel="stylesheet" href="/style.css?v=0.5.0-084aca">
 </head>
 <body>
 <header class="wrap top">
   <a class="brand" href="/" aria-label="Puzzullu, overzicht">
-    <img src="/logo.svg?v=0.5.0-48073e" width="44" height="44" alt="">
+    <img src="/logo.svg?v=0.5.0-084aca" width="44" height="44" alt="">
     <span>Puzzullu</span>
   </a>
   <nav class="nav" aria-label="Pagina's">
@@ -57,7 +57,11 @@
         <fieldset><legend>Aantal stukjes</legend><div class="chips" id="f-stukjes"></div></fieldset>
         <fieldset><legend>Moeilijkheid</legend><div class="chips" id="f-rating"></div></fieldset>
         <fieldset><legend>Nog niet gemaakt door</legend><div class="chips" id="f-niet"></div>
-          <p class="muted klein">Geen van hen heeft deze versie (zelfde puzzel, zelfde aantal stukjes) ooit gelegd, op welke doos dan ook.</p></fieldset>
+          <div class="mode" id="niet-mode" hidden>
+            <label><input type="radio" name="niet-mode" id="niet-samen" value="samen"> Samen (als duo, team …)</label>
+            <label><input type="radio" name="niet-mode" id="niet-los" value="los"> Geen van hen</label>
+          </div>
+          <p class="muted klein">Telt per versie (zelfde puzzel, zelfde aantal stukjes), op welke doos dan ook. Samen: ze hebben hem nog nooit met z'n allen tegelijk gelegd, ook niet met nog iemand erbij.</p></fieldset>
         <div class="row"><span></span><button type="button" class="link-btn" id="wis">Wis filters</button></div>
       </div>
     </details>
@@ -66,7 +70,7 @@
 </main>
 
 <footer class="wrap"><span>Puzzullu</span> <a class="version" href="/wat-is-nieuw/">v0.5.0 · Wat is nieuw</a></footer>
-<script src="/shared.js?v=0.5.0-48073e"></script>
-<script src="/generator/generator.js?v=0.5.0-48073e"></script>
+<script src="/shared.js?v=0.5.0-084aca"></script>
+<script src="/generator/generator.js?v=0.5.0-084aca"></script>
 </body>
 </html>

@@ -8,7 +8,7 @@
   const $ = (id) => document.getElementById(id);
   const VAAK = 5; // as on the overview: names with more than 5 logs first, the rest behind "Meer namen"
   const OPSLAG = "pz-generator-v1";
-  const standaard = { eigenaren: [], stukjes: [], moeilijk: [], niet: [], alleNamen: false };
+  const standaard = { eigenaren: [], stukjes: [], moeilijk: [], niet: [], samen: true, alleNamen: false };
 
   let st = { ...standaard };
   try { st = { ...standaard, ...JSON.parse(localStorage.getItem(OPSLAG) || "{}") }; } catch (e) { /* private window */ }
@@ -32,8 +32,8 @@
       const e = ex[l.exemplaar];
       for (const m of l.makers) telOp(keer, m);
       if (!e) continue;
-      const v = (gedaan[versie(e.afbeelding, e.stukjes)] ||= { makers: new Set(), n: 0, best: null, laatst: "" });
-      for (const m of l.makers) v.makers.add(m);
+      const v = (gedaan[versie(e.afbeelding, e.stukjes)] ||= { wie: [], n: 0, best: null, laatst: "" });
+      v.wie.push(l.makers);
       v.n += 1;
       if (l.sec != null && (v.best == null || l.sec < v.best)) v.best = l.sec;
       if (l.datum > v.laatst) v.laatst = l.datum;
@@ -55,6 +55,7 @@
     $("f-rating").innerHTML = [1, 2, 3, 4, 5, 0].map((v) => chip("moeilijk", v, v ? "★".repeat(v) : "Zonder rating",
       v ? ` aria-label="Rating ${v} van 5"` : "")).join("");
     tekenNamen();
+    $(st.samen ? "niet-samen" : "niet-los").checked = true;
   }
 
   function tekenNamen() {
@@ -71,7 +72,9 @@
       if (st.stukjes.length && !st.stukjes.includes(e.stukjes)) return false;
       if (st.moeilijk.length && !st.moeilijk.includes(a.rating || 0)) return false;
       const v = D.gedaan[versie(e.afbeelding, e.stukjes)];
-      if (st.niet.length && v && st.niet.some((m) => v.makers.has(m))) return false;
+      // samen: never did it with all of them in one go (as a duo, team, ...); otherwise: none of them ever did it
+      const deden = st.samen ? (wie) => st.niet.every((m) => wie.includes(m)) : (wie) => st.niet.some((m) => wie.includes(m));
+      if (st.niet.length && v && v.wie.some(deden)) return false;
       return true;
     });
   }
@@ -79,6 +82,7 @@
   function telling() {
     const n = kandidaten().length;
     const actief = ["eigenaren", "stukjes", "moeilijk", "niet"].filter((k) => st[k].length).length;
+    $("niet-mode").hidden = st.niet.length < 2;
     $("nfilters").textContent = actief ? `(${actief})` : "";
     $("count").textContent = n === 1 ? "De generator kiest uit 1 doos." : `De generator kiest uit ${getal(n)} dozen.`;
     $("kies").disabled = n === 0;
@@ -95,6 +99,11 @@
       st = { ...standaard, alleNamen: st.alleNamen };
       bewaar();
       tekenFilters();
+      return telling();
+    }
+    if (ev.target.name === "niet-mode") {
+      st.samen = ev.target.value === "samen";
+      bewaar();
       return telling();
     }
     const b = ev.target.closest(".chip[data-key]");
