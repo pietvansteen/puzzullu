@@ -28,6 +28,7 @@
     $("tijd-datum").value = vandaag();
     tekenMakers();
     tekenVideos();
+    tekenLaatste();
     vanGenerator();
   }
 
@@ -162,6 +163,19 @@
     if (exs.length === 1) kiesDoos(exs[0]);
   }
 
+  // the last log entered (highest number), so you can see what is in already
+  function tekenLaatste() {
+    const nr = (l) => Number(String(l.id).replace(/\D/g, "")) || 0;
+    const l = D.logs.reduce((x, y) => (!x || nr(y) > nr(x) ? y : x), null);
+    const e = l && D.exemplaren.find((x) => x.id === l.exemplaar);
+    $("laatst-log").hidden = !e;
+    if (!e) return;
+    const a = D.afb[e.afbeelding];
+    $("laatst-log").innerHTML = `<span class="muted">Laatst gelogd:</span> <b>${esc(a ? a.naam : e.afbeelding)}</b> `
+      + `<span class="muted">(${esc(doosNaam(e))})</span><br>`
+      + [l.sec != null ? tijd(l.sec) : "zonder tijd", l.makers.join(", "), datum(l.datum)].filter(Boolean).map(esc).join(" · ");
+  }
+
   // from the generator: /loggen/?doos=<id> chooses that box
   function vanGenerator() {
     const e = D.exemplaren.find((x) => x.id === new URLSearchParams(location.search).get("doos") && !x.weg);
@@ -233,6 +247,7 @@
       $("tijd-doos").hidden = true;
       tijdAfb = tijdDoos = null;
       tekenVideos();
+      tekenLaatste();
     } catch (e) {
       fout(e.message);
     } finally {

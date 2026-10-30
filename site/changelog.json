@@ -1,4 +1,11 @@
 [
+ {"version": "1.0.0",
+  "date": "2026-10-30",
+  "changes": [
+  "Versie 1.0: de site is compleet, met het overzicht, de statistieken, de generator en loggen.",
+  "In het overzicht kun je sorteren op datum: wat we het laatst gemaakt hebben, of wat het langst niet gemaakt is. De datum staat dan onder de naam.",
+  "Op de pagina Loggen zie je bovenaan welke puzzel het laatst is ingevoerd."
+ ]},
  {"version": "0.7.0",
   "date": "2026-10-30",
   "changes": [

@@ -256,14 +256,21 @@
       }
       const vs = [...versies].sort((x, y) => (x[0] || 0) - (y[0] || 0));
       const n = vs.reduce((s, [, exs]) => s + exs.reduce((t, x) => t + x.logs.length, 0), 0);
+      // the most recent date of the shown logs ("" when never done or only without a date)
+      const laatst = vs.reduce((s, [, exs]) => exs.reduce((t, x) => x.logs.reduce((u, l) => (l.datum > u ? l.datum : u), t), s), "");
       const t = treffers && treffers.get(a.id);
-      if (vs.length) zichtbaar.push({ a, vs, n, t });
+      if (vs.length) zichtbaar.push({ a, vs, n, t, laatst });
       else if (st.alles && !a.exemplaren.length && !st.eigenaren.length && !logFilter
-        && (!st.stukjes.length || a.versies.some((v) => st.stukjes.includes(v)))) zichtbaar.push({ a, vs, n: 0, t });
+        && (!st.stukjes.length || a.versies.some((v) => st.stukjes.includes(v)))) zichtbaar.push({ a, vs, n: 0, t, laatst: "" });
     }
-    if (st.sort !== "az") {
+    // stable sorts: the same count or date stays alphabetical
+    if (st.sort === "minst" || st.sort === "meest") {
       const r = st.sort === "minst" ? 1 : -1;
-      zichtbaar.sort((x, y) => r * (x.n - y.n)); // stable: same count stays alphabetical
+      zichtbaar.sort((x, y) => r * (x.n - y.n));
+    } else if (st.sort === "recent" || st.sort === "lang") {
+      // puzzles without a date go last either way
+      const r = st.sort === "recent" ? -1 : 1;
+      zichtbaar.sort((x, y) => (!x.laatst - !y.laatst) || r * x.laatst.localeCompare(y.laatst));
     }
     if (treffers) zichtbaar.sort((x, y) => x.t.rang - y.t.rang); // title first, then other names, then related
 
@@ -297,11 +304,12 @@
     return hits;
   }
 
-  function puzzel({ a, vs, n, t }) {
+  function puzzel({ a, vs, n, t, laatst }) {
     const meta = st.tekenaar && (a.tekenaar || a.jaar)
       ? ` <span class="meta">(${esc([a.tekenaar, a.jaar].filter(Boolean).join(", "))})</span>` : "";
     const nl = (a.nl && a.nl !== a.naam ? `<small>${esc(a.nl)}</small>` : "")
-      + (t && t.noot ? `<small class="noot">${esc(t.noot)}</small>` : "");
+      + (t && t.noot ? `<small class="noot">${esc(t.noot)}</small>` : "")
+      + ((st.sort === "recent" || st.sort === "lang") && laatst ? `<small class="noot">laatst gemaakt op ${datum(laatst)}</small>` : "");
     // stars and count always take their place, so the columns line up
     const rating = st.rating
       ? `<span class="stars"${a.rating ? ` title="Moeilijkheid ${a.rating} van 5" aria-label="Moeilijkheid ${a.rating} van 5"` : ""}>${sterren(a.rating)}</span>` : "";

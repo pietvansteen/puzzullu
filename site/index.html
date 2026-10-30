@@ -8,7 +8,7 @@
 <style>html { background: #0f1f3f; color-scheme: dark; }</style>
 <title>Puzzullu · Onze Jan van Haasteren-puzzels</title>
 <meta name="description" content="Alle Jan van Haasteren-puzzels van Puzzullu: wie heeft welke, en hoe snel we ze gelegd hebben.">
-<link rel="icon" href="/logo.svg?v=0.7.0-6e3217" type="image/svg+xml">
+<link rel="icon" href="/logo.svg?v=1.0.0-3863c5" type="image/svg+xml">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Puzzullu">
@@ -18,12 +18,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="/style.css?v=0.7.0-6e3217">
+<link rel="stylesheet" href="/style.css?v=1.0.0-3863c5">
 </head>
 <body>
 <header class="wrap top">
   <a class="brand" href="/" aria-label="Puzzullu, overzicht">
-    <img src="/logo.svg?v=0.7.0-6e3217" width="44" height="44" alt="">
+    <img src="/logo.svg?v=1.0.0-3863c5" width="44" height="44" alt="">
     <span>Puzzullu</span>
   </a>
   <nav class="nav" aria-label="Pagina's">
@@ -67,8 +67,10 @@
           <label class="select">Sorteren
             <select id="sort">
               <option value="az">Alfabetisch</option>
-              <option value="minst">Minst gemaakt</option>
-              <option value="meest">Meest gemaakt</option>
+              <option value="recent">Datum: laatst gemaakt</option>
+              <option value="lang">Datum: langst niet gemaakt</option>
+              <option value="meest">Aantal keer: meest gemaakt</option>
+              <option value="minst">Aantal keer: minst gemaakt</option>
             </select>
           </label>
           <button type="button" class="link-btn" id="wis">Wis filters</button>
@@ -90,8 +92,8 @@
   <p class="muted" id="updated"></p>
 </main>
 
-<footer class="wrap"><span>Puzzullu</span> <a class="version" href="/wat-is-nieuw/">v0.7.0 · Wat is nieuw</a></footer>
-<script src="/shared.js?v=0.7.0-6e3217"></script>
-<script src="/overzicht.js?v=0.7.0-6e3217"></script>
+<footer class="wrap"><span>Puzzullu</span> <a class="version" href="/wat-is-nieuw/">v1.0.0 · Wat is nieuw</a></footer>
+<script src="/shared.js?v=1.0.0-3863c5"></script>
+<script src="/overzicht.js?v=1.0.0-3863c5"></script>
 </body>
 </html>
