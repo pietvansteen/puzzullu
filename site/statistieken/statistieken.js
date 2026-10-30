@@ -12,6 +12,7 @@
   const MIN_TREND = 5;     // timed 1000-piece logs needed for a trend
   const VAAK_MIN = 3;      // timed logs a version needs to be "vaak gelegd"
   const VAAK_TOON = 10;
+  const PERSONEN = 8;      // people shown before "Toon alle"
   const NK_GROOTTE = { solo: 1, duo: 2, team: 4 };
   const MAANDEN = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
   const DAGEN = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
@@ -135,7 +136,15 @@
 
     let i = Math.floor(Math.random() * f.length);
     const toon = () => { $("feitje").innerHTML = f[i % f.length]; };
-    $("nog-feitje").addEventListener("click", () => { i += 1; toon(); });
+    $("nog-feitje").addEventListener("click", () => {
+      i += 1;
+      toon();
+      // roll the die once more (restart the animation)
+      const d = $("nog-feitje").querySelector(".dobbelsteen");
+      d.classList.remove("rol");
+      void d.offsetWidth;
+      d.classList.add("rol");
+    });
     toon();
   }
 
@@ -169,7 +178,15 @@
     }
     const rijen = Object.entries(p).sort((x, y) => y[1].n - x[1].n || x[0].localeCompare(y[0], "nl"))
       .map(([m, x]) => [esc(m), getal(x.n), getal(x.solo), getal(x.stukjes), `${getal(Math.round(x.sec / 3600))} u`]);
-    $("per-persoon").innerHTML = tabel(["Naam", "Puzzels", "Solo", "Stukjes", "Puzzeltijd"], rijen);
+    // the top PERSONEN, the rest behind "Toon alle"
+    let alle = false;
+    const teken = () => {
+      $("per-persoon").innerHTML = tabel(["Naam", "Puzzels", "Solo", "Stukjes", "Puzzeltijd"], alle ? rijen : rijen.slice(0, PERSONEN));
+      $("persoon-meer").hidden = rijen.length <= PERSONEN;
+      $("persoon-meer").textContent = alle ? "Minder tonen" : `Toon alle ${rijen.length} puzzelaars`;
+    };
+    $("persoon-meer").addEventListener("click", () => { alle = !alle; teken(); });
+    teken();
   }
 
   function collectie() {

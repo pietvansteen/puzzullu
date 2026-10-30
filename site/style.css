@@ -497,10 +497,17 @@ footer a { color: var(--muted); }
 .stats .blok > h2 { font-size: 1.45rem; }
 .stats h3 { font-size: 1.1rem; margin: 18px 0 8px; }
 .stats .klein { font-size: .85rem; margin: 6px 0 0; }
-.feitje { gap: 6px; margin-top: 18px; }
+.feitje { gap: 10px; margin-top: 18px; }
 .feitje-kop { font: 600 .95rem/1.2 var(--f-display); color: var(--accent); }
-.feitje-tekst { font-size: 1.08rem; min-height: 3.2em; }
-.feitje .link-btn { justify-self: start; }
+.feitje-tekst { font-size: 1.08rem; }
+.knop.dobbel { display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 3px 0 #c9971f; transition: transform .1s, box-shadow .1s; }
+.knop.dobbel:hover { transform: translateY(-1px); box-shadow: 0 4px 0 #c9971f; }
+.knop.dobbel:active { transform: translateY(3px); box-shadow: 0 0 0 #c9971f; }
+.dobbelsteen { display: inline-block; font-size: 1.15em; line-height: 1; }
+.dobbelsteen.rol { animation: rol .5s ease-out; }
+@keyframes rol { from { transform: rotate(0) scale(1); } 50% { transform: rotate(200deg) scale(1.25); } to { transform: rotate(360deg) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .dobbelsteen.rol { animation: none; } }
+#persoon-meer { margin-top: 8px; }
 .balken { display: grid; gap: 6px; }
 .balk { display: grid; grid-template-columns: 6.5em minmax(0, 1fr) 8.5em; align-items: center; gap: 10px; }
 .balk-label { color: var(--muted); font-size: .92rem; }
