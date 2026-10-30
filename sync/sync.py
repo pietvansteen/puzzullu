@@ -142,6 +142,15 @@ def iso_date(d):
         return None
 
 
+def iso_moment(d):
+    """'28-10-2026 14:09' (the Sheet's ingevoerd_op) -> '2026-10-28T14:09'; None when empty or wrong."""
+    m = re.fullmatch(r"(\S+)\s+(\d{1,2}):(\d{2})(?::\d{2})?", (d or "").strip())
+    dag = m and iso_date(m.group(1))
+    if not dag or int(m.group(2)) > 23 or int(m.group(3)) > 59:
+        return None
+    return f"{dag}T{int(m.group(2)):02d}:{m.group(3)}"
+
+
 def yes(s):
     return (s or "").strip().lower() in ("ja", "yes", "j", "y", "true", "1")
 
@@ -198,12 +207,12 @@ def parse_new(tabs):
 
     rows = tabs["LOGS"]
     c = columns(rows[0], id=("log_id",), ex=("exemplaar_id",), tijd=("tijd",), datum=("datum",), makers=("makers",),
-                compleet=("compleet",), gefilmd=("gefilmd",), video=("video",))
+                compleet=("compleet",), gefilmd=("gefilmd",), video=("video",), ingevoerd=("ingevoerd_op",))
     logs = [{
         "id": cell(r, c["id"]), "exemplaar": cell(r, c["ex"]), "sec": seconds(cell(r, c["tijd"])),
         "datum": iso_date(cell(r, c["datum"])), "makers": makers(cell(r, c["makers"])),
         "missend": missing(cell(r, c["compleet"])), "gefilmd": yes(cell(r, c["gefilmd"])),
-        "video": cell(r, c["video"]),
+        "video": cell(r, c["video"]), "ingevoerd": iso_moment(cell(r, c["ingevoerd"])),
     } for r in rows[1:] if cell(r, c["id"])]  # a log may have no time (done, but not timed)
     return afbeeldingen, exemplaren, logs
 

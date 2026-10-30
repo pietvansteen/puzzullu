@@ -171,9 +171,14 @@
     $("laatst-log").hidden = !e;
     if (!e) return;
     const a = D.afb[e.afbeelding];
-    $("laatst-log").innerHTML = `<span class="muted">Laatst gelogd:</span> <b>${esc(a ? a.naam : e.afbeelding)}</b> `
-      + `<span class="muted">(${esc(doosNaam(e))})</span><br>`
-      + [l.sec != null ? tijd(l.sec) : "zonder tijd", l.makers.join(", "), datum(l.datum)].filter(Boolean).map(esc).join(" · ");
+    const naam = `<b>${esc(a ? a.naam : e.afbeelding)}</b>`;
+    // when it was entered (column ingevoerd_op; older logs don't have it)
+    const [dag, uur] = (l.ingevoerd || "").split("T");
+    $("laatst-log").innerHTML = `<span class="muted">Laatst gelogd:</span> `
+      + (a && a.jvhUrl ? `<a href="${esc(a.jvhUrl)}" target="_blank" rel="noopener" title="Bekijk bij Jan van Haasteren">${naam} ↗</a>` : naam)
+      + ` <span class="muted">(${esc(doosNaam(e))})</span><br>`
+      + [l.sec != null ? tijd(l.sec) : "zonder tijd", l.makers.join(", "), datum(l.datum)].filter(Boolean).map(esc).join(" · ")
+      + (dag ? `<small class="muted">Ingevoerd op ${esc(datum(dag))}${uur ? ` om ${esc(uur)}` : ""}</small>` : "");
   }
 
   // from the generator: /loggen/?doos=<id> chooses that box
@@ -236,7 +241,8 @@
       const r = await bewaar("/api/log", body);
       const sec = t ? t.split(":").reduce((n, x) => n * 60 + Number(x), 0) : null;
       const nieuw = { id: r.log_id, exemplaar: tijdDoos.id, sec, datum: d, makers: [...wie].sort((x, y) => x.localeCompare(y, "nl")),
-        missend: body.compleet === "ja" ? 0 : mist, gefilmd: body.gefilmd, video: "" };
+        missend: body.compleet === "ja" ? 0 : mist, gefilmd: body.gefilmd, video: "",
+        ingevoerd: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) };
       feest(nieuw, tijdDoos, tijdAfb);
       D.logs.push(nieuw);
       for (const m of nieuw.makers) D.keer[m] = (D.keer[m] || 0) + 1;
