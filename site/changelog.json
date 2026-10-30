@@ -7,6 +7,11 @@
   "Vergelijken: kies een persoon of team en zie hoeveel sneller ze op 1000 stukjes zijn geworden, met een grafiek, en hoe ze het doen tegen anderen met evenveel mensen.",
   "De puzzels die we vaak gelegd hebben, met alle tijden onder elkaar en het verschil tussen de eerste en de laatste keer.",
   "Tegen het NK: onze snelste tijd op NK-puzzels naast die van de winnaar, en welke NK-puzzels we nog niet zo gelegd hebben.",
+  "Op de telefoon staat het menu op één regel onder het logo."
+ ]},
+ {"version": "0.5.0",
+  "date": "2026-10-30",
+  "changes": [
   "De [generator](/generator/): weet je niet wat je gaat leggen, dan kiest hij een doos voor je. Filter op van wie, aantal stukjes, moeilijkheid en wie de puzzel nog niet gemaakt heeft.",
   "Bij de gekozen puzzel zie je hoe vaak we die versie al gelegd hebben en de snelste tijd. Met Nog een keer kies je een andere.",
   "Kies je bij Nog niet gemaakt door meerdere namen, dan kies je of ze hem samen nog niet gelegd hebben (als duo, team of groep) of geen van hen."

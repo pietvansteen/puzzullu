@@ -80,8 +80,8 @@ Google Sheet ──CSV──> sync/sync.py (daily, or at once on data/sync-now) 
 3. Overview page → `0.3.0` (done)
 4. Apps Script `Puzzullu.gs` + `api.py` write actions + Loggen & beheer → `0.4.0` (done; the Apps Script is set up by hand)
 5. Generator → `0.5.0` (done)
-6. Statistics + NK comparison → `0.6.0` (done; released together with the generator)
-7. Design finishing, final logo → `1.0.0`
+6. Statistics + NK comparison → `0.6.0` (done; went live together with 0.5.0)
+7. Design finishing → `1.0.0` (Piet keeps the current logo and house style)
 8. Deploy on the NAS
 
 ## Other notes
