@@ -1,4 +1,9 @@
 [
+ {"version": "0.7.0",
+  "date": "2026-10-30",
+  "changes": [
+  "Bij Vergelijken op de statistieken kun je de grafiek nu ook op 500 stukjes bekijken: kies 500 of 1000."
+ ]},
  {"version": "0.6.0",
   "date": "2026-10-30",
   "changes": [

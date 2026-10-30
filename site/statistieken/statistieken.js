@@ -9,7 +9,9 @@
   const $ = (id) => document.getElementById(id);
   const TEAM_KEY = "pz-stats-team";
   const MIN_TEAM = 3;      // timed logs a person or team needs to be in the dropdown
-  const MIN_TREND = 5;     // timed 1000-piece logs needed for a trend
+  const MIN_TREND = 5;     // timed logs on one piece count needed for a trend
+  const MATEN = [500, 1000]; // piece counts to choose from for the progress chart
+  const MAAT_KEY = "pz-stats-stukjes";
   const VAAK_MIN = 3;      // timed logs a version needs to be "vaak gelegd"
   const VAAK_TOON = 10;
   const PERSONEN = 8;      // people shown before "Toon alle"
@@ -235,18 +237,33 @@
     if (g.length) vergelijk(sel.value);
   }
 
+  let maat = 1000;
+  try { maat = Number(localStorage.getItem(MAAT_KEY)) || 1000; } catch (e) { /* private window */ }
+  if (!MATEN.includes(maat)) maat = 1000;
+  let eigen = [];
+
   function vergelijk(team) {
-    const eigen = D.getimed.filter((l) => l.team === team);
-    const makers = eigen[0].makers;
-    progressie(eigen.filter((l) => l.stukjes === 1000 && l.datum), makers);
-    tegen(eigen, makers);
+    eigen = D.getimed.filter((l) => l.team === team);
+    progressie();
+    tegen(eigen, eigen[0].makers);
   }
 
-  // time against date on 1000 pieces, with the average of the last 5 as a trend line
-  function progressie(ls, makers) {
-    ls = [...ls].sort((x, y) => x.datum.localeCompare(y.datum));
+  $("progressie").addEventListener("click", (ev) => {
+    const b = ev.target.closest(".chip[data-maat]");
+    if (!b) return;
+    maat = Number(b.dataset.maat);
+    try { localStorage.setItem(MAAT_KEY, maat); } catch (e) { /* ignore */ }
+    progressie();
+  });
+
+  // time against date on 500 or 1000 pieces, with the average of the last 5 as a trend line
+  function progressie() {
+    const makers = eigen[0].makers;
+    const ls = eigen.filter((l) => l.stukjes === maat && l.datum).sort((x, y) => x.datum.localeCompare(y.datum));
+    const kop = `<div class="row grafiek-kop"><h3>Op ${maat} stukjes</h3><div class="chips" role="group" aria-label="Aantal stukjes">`
+      + MATEN.map((m) => `<button type="button" class="chip" data-maat="${m}" aria-pressed="${m === maat}">${m}</button>`).join("") + "</div></div>";
     if (ls.length < MIN_TREND) {
-      $("progressie").innerHTML = `<h3>Op 1000 stukjes</h3><p class="muted">${esc(wie(makers))} ${makers.length === 1 ? "heeft" : "hebben"} ${ls.length ? `pas ${ls.length} keer` : "nog geen"} 1000 stukjes met tijd en datum gelegd. Voor een trend zijn er minstens ${MIN_TREND} nodig.</p>`;
+      $("progressie").innerHTML = `${kop}<p class="muted">${esc(wie(makers))} ${makers.length === 1 ? "heeft" : "hebben"} ${ls.length ? `pas ${ls.length} keer` : "nog geen"} ${maat} stukjes met tijd en datum gelegd. Voor een trend zijn er minstens ${MIN_TREND} nodig.</p>`;
       return;
     }
     const k = Math.min(5, Math.floor(ls.length / 2));
@@ -256,7 +273,7 @@
     const conclusie = Math.abs(voor - na) < 60
       ? `${esc(wie(makers))} ${zijn(makers)} sinds ${jaar} ongeveer even snel gebleven.`
       : `${esc(wie(makers))} ${zijn(makers)} sinds ${jaar} gemiddeld <b>${woorden(voor - na)} ${na < voor ? "sneller" : "langzamer"}</b> geworden.`;
-    $("progressie").innerHTML = `<h3>Op 1000 stukjes</h3><p>${conclusie} <span class="muted">De eerste ${k} keer gemiddeld ${tijd(Math.round(voor))}, de laatste ${k} keer ${tijd(Math.round(na))}.</span></p>`
+    $("progressie").innerHTML = `${kop}<p>${conclusie} <span class="muted">De eerste ${k} keer gemiddeld ${tijd(Math.round(voor))}, de laatste ${k} keer ${tijd(Math.round(na))}.</span></p>`
       + grafiek(ls) + `<p class="legenda muted"><span class="stip"></span> één keer gelegd <span class="lijntje"></span> gemiddelde van de laatste 5 keer</p>`;
   }
 
@@ -290,7 +307,7 @@
     });
     svg += `<polyline class="trend" points="${trend.join(" ")}"/>`;
     svg += ls.map((l, i) => `<circle class="punt" cx="${px(xs[i]).toFixed(1)}" cy="${py(l.sec).toFixed(1)}" r="5"><title>${tijd(l.sec)} · ${esc(naam(l.a))} · ${datum(l.datum)}</title></circle>`).join("");
-    return `<svg class="grafiek" viewBox="0 0 ${B} ${H}" role="img" aria-label="Tijden op 1000 stukjes door de tijd">${svg}</svg>`;
+    return `<svg class="grafiek" viewBox="0 0 ${B} ${H}" role="img" aria-label="Tijden op ${ls[0].stukjes} stukjes door de tijd">${svg}</svg>`;
   }
 
   // against every other team of the same size, on the versions both did: best time against best time

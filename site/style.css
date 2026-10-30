@@ -537,6 +537,8 @@ footer a { color: var(--muted); }
 .min { color: #ff9e8a; }
 .select select { max-width: 100%; }
 .stats .select { flex-wrap: wrap; margin-top: 4px; }
+.grafiek-kop { margin: 18px 0 8px; }
+.grafiek-kop h3 { margin: 0; }
 .grafiek { display: block; width: 100%; height: auto; margin-top: 8px; }
 .grafiek .raster { stroke: var(--line); stroke-width: 1; }
 .grafiek .as { fill: var(--muted); font: 12px var(--f-body); }
