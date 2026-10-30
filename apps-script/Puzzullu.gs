@@ -145,7 +145,7 @@ function pzSetVideoUrl(b) {
   const logs = pzTab("Logs");
   const row = pzFind(logs, "log_id", b.log_id);
   if (!row) throw new Error("unknown log " + b.log_id);
-  if (!/^https:\/\/\S+$/.test(b.video_url || "")) throw new Error("the link must start with https://");
+  if (!/^https:\/\/((www|m)\.)?(youtube\.com|youtu\.be)\/\S{1,300}$/.test(b.video_url || "")) throw new Error("only YouTube links");
   pzSet(logs, row, { video_url: b.video_url, gefilmd: "ja" });
   return { ok: true };
 }

@@ -22,6 +22,9 @@
   // rating 1–5 -> ★★★☆☆
   const sterren = (n) => (n ? "★".repeat(n) + "☆".repeat(5 - n) : "");
 
+  // a YouTube link (youtube.com, www./m.youtube.com, youtu.be); the API only saves these, the site only links these
+  const youtube = (url) => /^https:\/\/((www|m)\.)?(youtube\.com|youtu\.be)\/\S{1,300}$/.test(url || "");
+
   let dataPromise = null;
   function data() {
     dataPromise = dataPromise || fetch("/data.json", { cache: "no-cache" }).then((r) => {
@@ -46,5 +49,5 @@
     nav.insertAdjacentHTML("beforeend", `<a href="/loggen/"${here ? ' aria-current="page"' : ""}>Loggen</a>`);
   }
 
-  window.PZ = { esc, getal: (n) => getal.format(n), tijd, datum, sterren, data, admin };
+  window.PZ = { esc, getal: (n) => getal.format(n), tijd, datum, sterren, data, admin, youtube };
 })();

@@ -1,4 +1,9 @@
 [
+ {"version": "1.0.1",
+  "date": "2026-10-30",
+  "changes": [
+  "Als video kun je alleen nog een YouTube-link opslaan, en het overzicht linkt alleen naar YouTube."
+ ]},
  {"version": "1.0.0",
   "date": "2026-10-30",
   "changes": [

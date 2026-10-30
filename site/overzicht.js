@@ -348,9 +348,9 @@
   }
 
   function log(l, e) {
-    const film = l.video
+    const film = PZ.youtube(l.video)
       ? `<a class="film yt" href="${esc(l.video)}" target="_blank" rel="noopener" title="Bekijk de video" aria-label="Bekijk de video">${ICON_YOUTUBE}</a>`
-      : l.gefilmd ? `<span class="film cam" title="Gefilmd, video komt nog" aria-label="Gefilmd, video komt nog">${ICON_CAMERA}</span>`
+      : l.gefilmd || l.video ? `<span class="film cam" title="Gefilmd, video komt nog" aria-label="Gefilmd, video komt nog">${ICON_CAMERA}</span>`
       : '<span class="film"></span>';
     const notities = [
       e ? `doos van ${e.eigenaren.length ? esc(e.eigenaren.join(" & ")) : "niemand"}${e.volgnummer > 1 ? ` (${e.volgnummer})` : ""}` : "",

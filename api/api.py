@@ -53,6 +53,8 @@ TIME_RE = re.compile(r"^\d{1,3}:[0-5]\d:[0-5]\d$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # a name never starts with = + - @ (Sheets would read it as a formula) and has no comma (the list separator)
 NAME_RE = re.compile(r"^[^\s,=+\-@][^,]{0,39}$")
+# video links only to YouTube (youtube.com, www./m.youtube.com, youtu.be), so a link on the site never leads elsewhere
+YOUTUBE_RE = re.compile(r"^https://((www|m)\.)?(youtube\.com|youtu\.be)/\S{1,300}$")
 
 
 def log(msg):
@@ -125,8 +127,8 @@ def check_exemplaar(b):
 
 def check_video(b):
     url = str(b.get("video_url") or "").strip()
-    if not re.match(r"^https://\S{4,300}$", url):
-        raise Invalid("Plak een link die begint met https://")
+    if not YOUTUBE_RE.match(url):
+        raise Invalid("Plak een YouTube-link, zoals https://youtu.be/… of https://www.youtube.com/watch?v=…")
     log_id = str(b.get("log_id") or "")
     if not LOG_RE.match(log_id):
         raise Invalid("Onbekende tijd.")

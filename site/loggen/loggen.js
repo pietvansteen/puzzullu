@@ -436,6 +436,10 @@
     if (!b) return;
     const li = b.closest("li"), url = li.querySelector("input").value.trim();
     li.querySelector(".fout").textContent = "";
+    if (!PZ.youtube(url)) {
+      li.querySelector(".fout").textContent = "Plak een YouTube-link, zoals https://youtu.be/… of https://www.youtube.com/watch?v=…";
+      return;
+    }
     b.disabled = true;
     try {
       await bewaar("/api/video", { log_id: li.dataset.id, video_url: url });
