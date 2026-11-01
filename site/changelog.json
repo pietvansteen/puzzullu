@@ -1,4 +1,9 @@
 [
+ {"version": "1.2.0",
+  "date": "2026-11-01",
+  "changes": [
+  "In het overzicht kun je filteren op tijden met een video, zodat je makkelijk iets kunt terugkijken."
+ ]},
  {"version": "1.1.0",
   "date": "2026-11-01",
   "changes": [

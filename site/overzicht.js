@@ -16,7 +16,7 @@
   const GROEPEN = [[1, "Solo"], [2, "Duo"], [3, "Drie"], [4, "Team"], [5, "5 of meer"]];
   const OPSLAG = "pz-overzicht-v4";
   const standaard = { zoek: "", stukjes: [], eigenaren: [], makers: [], samen: true, alleMakers: false, groep: [], moeilijk: [],
-    van: 0, tot: LAATSTE, snelste: false, sort: "az", tekenaar: false, rating: true, alles: false };
+    van: 0, tot: LAATSTE, snelste: false, video: false, sort: "az", tekenaar: false, rating: true, alles: false };
   let st = { ...standaard };
   try { st = { ...standaard, ...JSON.parse(localStorage.getItem(OPSLAG) || "{}"), zoek: "" }; } catch (e) { /* private window */ }
   // the search term is not remembered, the filters and checkboxes are
@@ -107,6 +107,7 @@
     $("f-van").value = st.van;
     $("f-tot").value = st.tot;
     $("snelste").checked = st.snelste;
+    $("met-video").checked = st.video;
     $("zoek").value = st.zoek;
     $("sort").value = st.sort;
     $("toon-tekenaar").checked = st.tekenaar;
@@ -157,12 +158,13 @@
     });
     for (const id of ["samen", "los"]) $(id).addEventListener("change", () => { st.samen = $("samen").checked; wijzig(); });
     $("snelste").addEventListener("change", () => { st.snelste = $("snelste").checked; wijzig(); });
+    $("met-video").addEventListener("change", () => { st.video = $("met-video").checked; wijzig(); });
     $("sort").addEventListener("change", () => { st.sort = $("sort").value; wijzig(); });
     for (const [id, key] of [["toon-tekenaar", "tekenaar"], ["toon-rating", "rating"], ["toon-alles", "alles"]]) {
       $(id).addEventListener("change", () => { st[key] = $(id).checked; wijzig(); });
     }
     $("wis").addEventListener("click", () => {
-      st = { ...st, zoek: "", stukjes: [], eigenaren: [], makers: [], groep: [], moeilijk: [], van: 0, tot: LAATSTE };
+      st = { ...st, zoek: "", stukjes: [], eigenaren: [], makers: [], groep: [], moeilijk: [], van: 0, tot: LAATSTE, video: false };
       bouwFilters();
       wijzig();
     });
@@ -216,11 +218,11 @@
     const perVersie = tijdFilter && st.snelste;
     const binnen = (sec) => (van == null || sec >= van) && (tot == null || sec < tot);
     const aantalFilters = (st.stukjes.length > 0) + (st.eigenaren.length > 0) + (st.makers.length > 0)
-      + (st.groep.length > 0) + (st.moeilijk.length > 0) + tijdFilter;
+      + (st.groep.length > 0) + (st.moeilijk.length > 0) + tijdFilter + st.video;
     $("nfilters").textContent = aantalFilters ? `(${aantalFilters})` : "";
     $("wis").hidden = !aantalFilters && !st.zoek;
 
-    const logFilter = st.makers.length > 0 || st.groep.length > 0 || tijdFilter;
+    const logFilter = st.makers.length > 0 || st.groep.length > 0 || tijdFilter || st.video;
     // "samen" can only match when one of the chosen group sizes holds all chosen makers (Solo + 2 names never does);
     // then the option is hidden and "minstens één" applies, without forgetting the choice
     const samenKan = !st.groep.length || st.groep.some((g) => g >= 5 || g >= st.makers.length);
@@ -231,7 +233,7 @@
     $("los").checked = !samen;
     const wie = samen ? (l) => st.makers.every((m) => l.makers.includes(m)) : (l) => !st.makers.length || st.makers.some((m) => l.makers.includes(m));
     const groep = (l) => !st.groep.length || st.groep.includes(Math.min(l.makers.length, 5));
-    const maker = (l) => wie(l) && groep(l);
+    const maker = (l) => wie(l) && groep(l) && (!st.video || PZ.youtube(l.video));
     const zoek = st.zoek.trim().toLowerCase();
     const treffers = zoeken(zoek);
     const zichtbaar = [];
@@ -243,7 +245,7 @@
         if (st.stukjes.length && !st.stukjes.includes(e.stukjes)) continue;
         if (st.eigenaren.length && !e.eigenaren.some((p) => st.eigenaren.includes(p))) continue;
         const logs = e.logs.filter((l) => maker(l) && (!tijdFilter || perVersie || (l.sec != null && binnen(l.sec))));
-        if (logFilter && !perVersie && !logs.length) continue;
+        if (logFilter && (!perVersie || st.video) && !logs.length) continue;
         if (!versies.has(e.stukjes)) versies.set(e.stukjes, []);
         versies.get(e.stukjes).push({ e, logs });
       }
@@ -274,7 +276,9 @@
     }
     if (treffers) zichtbaar.sort((x, y) => x.t.rang - y.t.rang); // title first, then other names, then related
 
-    $("count").textContent = zichtbaar.length === 1 ? "1 puzzel" : `${getal(zichtbaar.length)} puzzels`;
+    const videos = zichtbaar.reduce((s, x) => s + x.n, 0);
+    $("count").textContent = (zichtbaar.length === 1 ? "1 puzzel" : `${getal(zichtbaar.length)} puzzels`)
+      + (st.video ? `, ${getal(videos)} ${videos === 1 ? "video" : "video's"}` : "");
     lijst.classList.toggle("met-rating", st.rating);
     lijst.innerHTML = zichtbaar.length
       ? zichtbaar.map(puzzel).join("")
