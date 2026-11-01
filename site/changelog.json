@@ -1,4 +1,10 @@
 [
+ {"version": "1.1.0",
+  "date": "2026-11-01",
+  "changes": [
+  "Bij Tegen het NK zie je nu wanneer wij onze snelste tijd neerzetten, zodat je die naast het jaar van het NK kunt leggen.",
+  "Bij Tegen het NK kun je zoeken op de naam van een puzzel, ook in de lijst met puzzels die we nog niet zo gelegd hebben."
+ ]},
  {"version": "1.0.1",
   "date": "2026-10-30",
   "changes": [

@@ -117,7 +117,7 @@ h2 { font-size: 1.35rem; }
 
 /* ---------- overview: search and filters ---------- */
 .tools { display: grid; gap: 10px; margin: 6px 0 12px; }
-#zoek {
+#zoek, .zoekbalk {
   width: 100%;
   padding: 12px 16px;
   border: 1px solid var(--line);
@@ -126,8 +126,8 @@ h2 { font-size: 1.35rem; }
   color: var(--ink);
   font-family: var(--f-body);
 }
-#zoek::placeholder { color: var(--muted); }
-#zoek:focus, .filters summary:focus-visible, .chip:focus-visible, .pz summary:focus-visible {
+#zoek::placeholder, .zoekbalk::placeholder { color: var(--muted); }
+#zoek:focus, .zoekbalk:focus, .filters summary:focus-visible, .chip:focus-visible, .pz summary:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -560,6 +560,8 @@ footer a { color: var(--muted); }
 .nk-nog { margin-top: 14px; }
 .nk-nog ul { margin-top: 8px; font-size: .92rem; }
 #vaak-meer { margin-top: 8px; }
+#nk-zoek { margin: 4px 0 8px; }
+#nk-geen:empty { display: none; }
 @media (max-width: 420px) {
   .tabel { font-size: .86rem; }
   .tabel th, .tabel td { padding: 6px 4px; }

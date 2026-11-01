@@ -389,16 +389,40 @@
     $("nk-kop").innerHTML = gedaan.length
       ? `We legden <b>${gedaan.length}</b> NK-puzzels zoals op het NK, en waren <b>${sneller}</b> keer sneller dan de winnaar.`
       : "We hebben nog geen NK-puzzel gelegd zoals op het NK.";
-    $("nk").innerHTML = gedaan.length ? tabel(["Puzzel", "Winnaar", "Wij", "Verschil"], gedaan.map(({ n, best }) => {
-      const v = best.sec - n.sec;
-      return [`${esc(D.afb[n.afbeelding] ? naam(D.afb[n.afbeelding]) : n.puzzel)}<small class="muted">NK ${n.jaar}, ${esc(n.ronde)}, ${esc(n.categorie)}</small>`,
-        tijd(n.sec), `${tijd(best.sec)}<small class="muted">${esc(wie(best.makers))}</small>`,
-        `<span class="${v < 0 ? "plus" : "min"}">${v < 0 ? "−" : "+"}${tijd(Math.abs(v))}</span>`];
-    })) : "";
     const inKast = (n) => D.dozen.some((e) => e.afbeelding === n.afbeelding && e.stukjes === n.stukjes);
     nog.sort((x, y) => inKast(y) - inKast(x) || x.jaar - y.jaar);
-    $("nk-nog-kop").textContent = `NK-puzzels die we nog niet zo gelegd hebben (${nog.length})`;
-    $("nk-nog").innerHTML = nog.map((n) => `<li>${esc(D.afb[n.afbeelding] ? naam(D.afb[n.afbeelding]) : n.puzzel)} <span class="muted">NK ${n.jaar}, ${esc(n.ronde)}, ${esc(n.categorie)}, winnaar ${tijd(n.sec)}${inKast(n) ? " · staat in de kast" : ""}</span></li>`).join("");
+
+    const nkNaam = (n) => (D.afb[n.afbeelding] ? naam(D.afb[n.afbeelding]) : n.puzzel);
+    // lowercase without accents, so "cafe" also finds "Café"
+    const vouw = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    // all names of an NK puzzle: as on the NK, English, Dutch and other editions
+    const zoektekst = (n) => {
+      const a = D.afb[n.afbeelding] || {};
+      return vouw([n.puzzel, a.en, a.nl, ...(a.namen || [])].join(" "));
+    };
+
+    let doorZoeken = false; // the second list was opened by a search: close it again afterwards
+
+    function teken() {
+      const q = vouw($("nk-zoek").value.trim());
+      const past = (n) => !q || zoektekst(n).includes(q);
+      const rijen = gedaan.filter((x) => past(x.n)), rest = nog.filter(past);
+      $("nk").innerHTML = rijen.length ? tabel(["Puzzel", "Winnaar", "Wij", "Verschil"], rijen.map(({ n, best }) => {
+        const v = best.sec - n.sec;
+        return [`${esc(nkNaam(n))}<small class="muted">NK ${n.jaar}, ${esc(n.ronde)}, ${esc(n.categorie)}</small>`,
+          tijd(n.sec), `${tijd(best.sec)}<small class="muted">${esc(wie(best.makers))}</small>${best.datum ? `<small class="muted">${datum(best.datum)}</small>` : ""}`,
+          `<span class="${v < 0 ? "plus" : "min"}">${v < 0 ? "−" : "+"}${tijd(Math.abs(v))}</span>`];
+      })) : "";
+      $("nk-nog-kop").textContent = `NK-puzzels die we nog niet zo gelegd hebben (${q ? `${rest.length} van ${nog.length}` : nog.length})`;
+      $("nk-nog").innerHTML = rest.map((n) => `<li>${esc(nkNaam(n))} <span class="muted">NK ${n.jaar}, ${esc(n.ronde)}, ${esc(n.categorie)}, winnaar ${tijd(n.sec)}${inKast(n) ? " · staat in de kast" : ""}</span></li>`).join("");
+      // while searching, hits in the second list must not stay hidden
+      if (q) { $("nk-nog-blok").open = rest.length > 0; doorZoeken = true; }
+      else if (doorZoeken) { $("nk-nog-blok").open = false; doorZoeken = false; }
+      $("nk-nog-blok").hidden = !!q && !rest.length;
+      $("nk-geen").textContent = q && !rijen.length && !rest.length ? "Geen NK-puzzel gevonden met die naam." : "";
+    }
+    $("nk-zoek").addEventListener("input", teken);
+    teken();
   }
 
   // ---------------------------------------------------------------- start
