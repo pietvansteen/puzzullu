@@ -256,7 +256,7 @@
     progressie();
   });
 
-  // time against date on 500 or 1000 pieces, with the average of the last 5 as a trend line
+  // time against date on 500 or 1000 pieces, with a smooth trend line
   function progressie() {
     const makers = eigen[0].makers;
     const ls = eigen.filter((l) => l.stukjes === maat && l.datum).sort((x, y) => x.datum.localeCompare(y.datum));
@@ -274,7 +274,24 @@
       ? `${esc(wie(makers))} ${zijn(makers)} sinds ${jaar} ongeveer even snel gebleven.`
       : `${esc(wie(makers))} ${zijn(makers)} sinds ${jaar} gemiddeld <b>${woorden(voor - na)} ${na < voor ? "sneller" : "langzamer"}</b> geworden.`;
     $("progressie").innerHTML = `${kop}<p>${conclusie} <span class="muted">De eerste ${k} keer gemiddeld ${tijd(Math.round(voor))}, de laatste ${k} keer ${tijd(Math.round(na))}.</span></p>`
-      + grafiek(ls) + `<p class="legenda muted"><span class="stip"></span> één keer gelegd <span class="lijntje"></span> gemiddelde van de laatste 5 keer</p>`;
+      + grafiek(ls) + `<p class="legenda muted"><span class="stip"></span> één keer gelegd <span class="lijntje"></span> trendlijn</p>`;
+  }
+
+  // a smooth trend: at each of many points in time the average of all times, the nearer in time the heavier
+  // (a Gaussian bell a fifth of the whole period wide). It has no corners and never leaves the range of the times.
+  function trendlijn(xs, ys, stappen = 80) {
+    const x0 = Math.min(...xs), x1 = Math.max(...xs);
+    const h = Math.max((x1 - x0) / 5, 14 * 864e5);
+    return Array.from({ length: stappen + 1 }, (_, i) => {
+      const t = x0 + ((x1 - x0) * i) / stappen;
+      let sw = 0, sy = 0;
+      xs.forEach((x, j) => {
+        const w = Math.exp(-(((x - t) / h) ** 2) / 2);
+        sw += w;
+        sy += w * ys[j];
+      });
+      return [t, sy / sw];
+    });
   }
 
   function grafiek(ls) {
@@ -301,10 +318,7 @@
       const label = elke >= 12 ? dt.getUTCFullYear() : `${MAANDEN[dt.getUTCMonth()].slice(0, 3)} '${String(dt.getUTCFullYear()).slice(2)}`;
       svg += `<text class="as" x="${px(d)}" y="${H - 8}" text-anchor="middle">${label}</text>`;
     }
-    const trend = ls.map((l, i) => {
-      const w = ls.slice(Math.max(0, i - 4), i + 1);
-      return `${px(xs[i]).toFixed(1)},${py(som(w.map((x) => x.sec)) / w.length).toFixed(1)}`;
-    });
+    const trend = trendlijn(xs, secs).map(([t, s]) => `${px(t).toFixed(1)},${py(s).toFixed(1)}`);
     svg += `<polyline class="trend" points="${trend.join(" ")}"/>`;
     svg += ls.map((l, i) => `<circle class="punt" cx="${px(xs[i]).toFixed(1)}" cy="${py(l.sec).toFixed(1)}" r="5"><title>${tijd(l.sec)} · ${esc(naam(l.a))} · ${datum(l.datum)}</title></circle>`).join("");
     return `<svg class="grafiek" viewBox="0 0 ${B} ${H}" role="img" aria-label="Tijden op ${ls[0].stukjes} stukjes door de tijd">${svg}</svg>`;
