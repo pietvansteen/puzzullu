@@ -1,4 +1,9 @@
 [
+ {"version": "1.3.0",
+  "date": "2026-11-13",
+  "changes": [
+  "Op de statistieken zie je de laatste 5 puzzels die we gemaakt hebben: welke puzzel, hoeveel stukjes, wie, de tijd en de datum."
+ ]},
  {"version": "1.2.0",
   "date": "2026-11-01",
   "changes": [

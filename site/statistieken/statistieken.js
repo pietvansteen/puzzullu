@@ -14,7 +14,8 @@
   const MAAT_KEY = "pz-stats-stukjes";
   const VAAK_MIN = 3;      // timed logs a version needs to be "vaak gelegd"
   const VAAK_TOON = 10;
-  const PERSONEN = 8;      // people shown before "Toon alle"
+  const PERSONEN = 8;
+  const LAATST = 5;        // last puzzles done      // people shown before "Toon alle"
   const NK_GROOTTE = { solo: 1, duo: 2, team: 4 };
   const MAANDEN = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
   const DAGEN = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
@@ -164,10 +165,13 @@
     }).join("");
   }
 
-  const tabel = (kop, rijen, voet = "") =>
-    `<thead><tr>${kop.map((k, i) => `<th${i ? ' class="num"' : ""}>${k}</th>`).join("")}</tr></thead>`
-    + `<tbody>${rijen.map((r) => `<tr>${r.map((c, i) => `<td${i ? ' class="num"' : ""}>${c}</td>`).join("")}</tr>`).join("")}</tbody>`
-    + (voet ? `<tfoot><tr>${voet.map((c, i) => `<td${i ? ' class="num"' : ""}>${c}</td>`).join("")}</tr></tfoot>` : "");
+  // the first column is text, the rest numbers (right-aligned, on one line), except the columns in `tekst`
+  const tabel = (kop, rijen, voet = "", tekst = [0]) => {
+    const cl = (i) => (tekst.includes(i) ? "" : ' class="num"');
+    return `<thead><tr>${kop.map((k, i) => `<th${cl(i)}>${k}</th>`).join("")}</tr></thead>`
+      + `<tbody>${rijen.map((r) => `<tr>${r.map((c, i) => `<td${cl(i)}>${c}</td>`).join("")}</tr>`).join("")}</tbody>`
+      + (voet ? `<tfoot><tr>${voet.map((c, i) => `<td${cl(i)}>${c}</td>`).join("")}</tr></tfoot>` : "");
+  };
 
   function perPersoon() {
     const p = {};
@@ -209,6 +213,15 @@
       return [getal(s), getal(D.dozen.filter((e) => e.stukjes === s).length), getal(D.logs.filter((l) => l.stukjes === s).length),
         snel ? `<span title="${esc(wie(snel.makers))}, ${esc(naam(snel.a))}">${tijd(snel.sec)}</span>` : "–"];
     }));
+  }
+
+  // the last puzzles done: by date, and on the same date the one logged last first
+  function laatst() {
+    const nr = (l) => Number(String(l.id).replace(/\D/g, "")) || 0;
+    const ls = D.logs.filter((l) => l.datum && l.a).sort((x, y) => y.datum.localeCompare(x.datum) || nr(y) - nr(x)).slice(0, LAATST);
+    $("laatst").innerHTML = tabel(["Puzzel", "Wie", "Tijd", "Datum"], ls.map((l) => [
+      `${esc(naam(l.a))}<small class="muted">${l.stukjes ? `${getal(l.stukjes)} stukjes` : "onbekend aantal stukjes"}</small>`,
+      esc(wie(l.makers)), l.sec != null ? tijd(l.sec) : '<span class="muted">geen tijd</span>', datum(l.datum)]), "", [0, 1]);
   }
 
   function meest() {
@@ -445,6 +458,7 @@
     D = voorbereiden(d);
     tegels();
     feitjes();
+    laatst();
     perJaar();
     perPersoon();
     collectie();
