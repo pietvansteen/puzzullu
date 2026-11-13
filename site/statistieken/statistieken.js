@@ -15,7 +15,8 @@
   const VAAK_MIN = 3;      // timed logs a version needs to be "vaak gelegd"
   const VAAK_TOON = 10;
   const PERSONEN = 8;
-  const LAATST = 5;        // last puzzles done      // people shown before "Toon alle"
+  const LAATST = 5;        // last puzzles done
+  const LAATST_KORT = 2;   // of which shown before "Toon nog"      // people shown before "Toon alle"
   const NK_GROOTTE = { solo: 1, duo: 2, team: 4 };
   const MAANDEN = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
   const DAGEN = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
@@ -219,9 +220,17 @@
   function laatst() {
     const nr = (l) => Number(String(l.id).replace(/\D/g, "")) || 0;
     const ls = D.logs.filter((l) => l.datum && l.a).sort((x, y) => y.datum.localeCompare(x.datum) || nr(y) - nr(x)).slice(0, LAATST);
-    $("laatst").innerHTML = tabel(["Puzzel", "Wie", "Tijd", "Datum"], ls.map((l) => [
+    const rijen = ls.map((l) => [
       `${esc(naam(l.a))}<small class="muted">${l.stukjes ? `${getal(l.stukjes)} stukjes` : "onbekend aantal stukjes"}</small>`,
-      esc(wie(l.makers)), l.sec != null ? tijd(l.sec) : '<span class="muted">geen tijd</span>', datum(l.datum)]), "", [0, 1]);
+      esc(wie(l.makers)), l.sec != null ? tijd(l.sec) : '<span class="muted">geen tijd</span>', datum(l.datum)]);
+    let alle = false;
+    const teken = () => {
+      $("laatst").innerHTML = tabel(["Puzzel", "Wie", "Tijd", "Datum"], alle ? rijen : rijen.slice(0, LAATST_KORT), "", [0, 1]);
+      $("laatst-meer").hidden = rijen.length <= LAATST_KORT;
+      $("laatst-meer").textContent = alle ? "Minder tonen" : `Toon nog ${rijen.length - LAATST_KORT}`;
+    };
+    $("laatst-meer").addEventListener("click", () => { alle = !alle; teken(); });
+    teken();
   }
 
   function meest() {

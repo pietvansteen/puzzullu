@@ -515,7 +515,7 @@ footer a { color: var(--muted); }
 .dobbelsteen.rol { animation: rol .5s ease-out; }
 @keyframes rol { from { transform: rotate(0) scale(1); } 50% { transform: rotate(200deg) scale(1.25); } to { transform: rotate(360deg) scale(1); } }
 @media (prefers-reduced-motion: reduce) { .dobbelsteen.rol { animation: none; } }
-#persoon-meer { margin-top: 8px; }
+#persoon-meer, #laatst-meer { margin-top: 8px; }
 .balken { display: grid; gap: 6px; }
 .balk { display: grid; grid-template-columns: 6.5em minmax(0, 1fr) 8.5em; align-items: center; gap: 10px; }
 .balk-label { color: var(--muted); font-size: .92rem; }
