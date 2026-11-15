@@ -513,9 +513,9 @@ footer a { color: var(--muted); }
 .kop-rij { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .kop-rij h2 { margin: 0; }
 .stats .kop-rij { margin-bottom: .4em; }
-.bel { width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); font-size: 1.05rem; line-height: 1; cursor: pointer; filter: grayscale(1); opacity: .75; }
-.bel.aan { border-color: var(--accent); filter: none; opacity: 1; }
-.bel[aria-expanded="true"] { background: var(--surface-2); }
+.bel { flex: none; width: 32px; height: 32px; padding: 0; border: 1.5px solid var(--muted); border-radius: 50%; background: var(--surface); font-size: .9rem; line-height: 1; cursor: pointer; }
+.bel.aan { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 0 3px rgba(255, 200, 69, .25); }
+.bel:not(.aan)[aria-expanded="true"] { background: var(--surface-2); }
 .bel:focus-visible, .meldingen .sluit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .feitje-kop { font: 600 .95rem/1.2 var(--f-display); color: var(--accent); }
 .feitje-tekst { font-size: 1.08rem; }

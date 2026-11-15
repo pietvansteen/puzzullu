@@ -1,4 +1,9 @@
 [
+ {"version": "1.4.2",
+  "date": "2026-11-15",
+  "changes": [
+  "Het belletje naast Laatst gemaakt is kleiner en laat beter zien of meldingen aan staan: geel met een belletje als ze aan staan, doorgestreept als ze uit staan."
+ ]},
  {"version": "1.4.1",
   "date": "2026-11-15",
   "changes": [

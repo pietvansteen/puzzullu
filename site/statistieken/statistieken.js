@@ -261,8 +261,10 @@
         return;
       }
       const aan = !!(await M.abonnement().catch(() => null));
+      // on: a yellow bell; off: a crossed-out bell
       $("bel").classList.toggle("aan", aan);
-      $("bel").title = aan ? "Meldingen staan aan" : "Meldingen";
+      $("bel").textContent = aan ? "🔔" : "🔕";
+      $("bel").title = aan ? "Meldingen staan aan" : "Meldingen staan uit";
       knop.hidden = false;
       knop.classList.toggle("tweede", aan);
       if (aan) {
