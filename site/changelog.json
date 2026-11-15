@@ -1,4 +1,9 @@
 [
+ {"version": "1.4.0",
+  "date": "2026-11-15",
+  "changes": [
+  "Up-to-date blijven: zet op de statistieken bij Laatst gemaakt meldingen aan, en je krijgt een melding als er een nieuwe puzzel is gelegd. Logt jouw apparaat de puzzel zelf, dan krijg je er geen melding van. Op de iPhone werkt het als Puzzullu op je beginscherm staat."
+ ]},
  {"version": "1.3.0",
   "date": "2026-11-13",
   "changes": [

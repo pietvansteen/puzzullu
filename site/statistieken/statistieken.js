@@ -233,6 +233,51 @@
     teken();
   }
 
+  // "Up-to-date blijven": a push message on this device when a puzzle is logged
+  async function meldingen() {
+    const M = PZ.meldingen;
+    const teken = async () => {
+      $("meldingen").hidden = false;
+      $("meld-fout").textContent = "";
+      const knop = $("meld-knop");
+      if (!M.kan()) {
+        $("meld-tekst").textContent = M.iphoneZonderApp()
+          ? "Op de iPhone kan dat als je Puzzullu op je beginscherm zet (in Safari via Deel en dan Zet op beginscherm). Open hem daarna vanaf je beginscherm."
+          : "Deze browser kan geen meldingen ontvangen.";
+        knop.hidden = true;
+        return;
+      }
+      const aan = !!(await M.abonnement().catch(() => null));
+      knop.hidden = false;
+      knop.classList.toggle("tweede", aan);
+      if (aan) {
+        $("meld-tekst").textContent = "Op dit apparaat krijg je een melding als er een nieuwe puzzel is gelegd.";
+        knop.textContent = "Meldingen uitzetten";
+      } else if (M.geblokkeerd()) {
+        $("meld-tekst").textContent = "Meldingen van Puzzullu zijn geblokkeerd in de instellingen van je browser. Zet ze daar eerst weer aan.";
+        knop.hidden = true;
+      } else {
+        $("meld-tekst").textContent = "Krijg een melding op dit apparaat als er een nieuwe puzzel is gelegd.";
+        knop.textContent = "🔔 Meldingen aan";
+      }
+    };
+    $("meld-knop").addEventListener("click", async () => {
+      const knop = $("meld-knop");
+      knop.disabled = true;
+      try {
+        (await M.abonnement()) ? await M.uit() : await M.aan();
+      } catch (e) {
+        await teken();
+        $("meld-fout").textContent = e.message || "Dat lukte niet.";
+        knop.disabled = false;
+        return;
+      }
+      knop.disabled = false;
+      await teken();
+    });
+    await teken();
+  }
+
   function meest() {
     const versies = [...groepeer(D.logs.filter((l) => l.a), (l) => l.versie)].sort((x, y) => y[1].length - x[1].length).slice(0, 10);
     $("meest").innerHTML = versies.map(([, ls]) =>
@@ -468,6 +513,7 @@
     tegels();
     feitjes();
     laatst();
+    meldingen();
     perJaar();
     perPersoon();
     collectie();

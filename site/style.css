@@ -506,6 +506,8 @@ footer a { color: var(--muted); }
 .stats h3 { font-size: 1.1rem; margin: 18px 0 8px; }
 .stats .klein { font-size: .85rem; margin: 6px 0 0; }
 .feitje { gap: 10px; margin-top: 18px; }
+.meldingen { display: grid; gap: 10px; justify-items: start; margin-top: 14px; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 12px; }
+.meldingen p { margin: 0; }
 .feitje-kop { font: 600 .95rem/1.2 var(--f-display); color: var(--accent); }
 .feitje-tekst { font-size: 1.08rem; }
 .knop.dobbel { display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 3px 0 #c9971f; transition: transform .1s, box-shadow .1s; }

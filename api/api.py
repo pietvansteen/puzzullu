@@ -14,6 +14,13 @@ Puzzullu API behind nginx on /api/. Standard library only, no pip needed.
   POST /api/video           a video link:    {log_id, video_url}
   POST /api/rating          difficulty:      {afbeelding_id, rating 1..5 | null}
 
+Push messages (no password; anyone can ask for a message on their own device):
+  GET  /api/push/sleutel    the server's public VAPID key (made by the sync, data/vapid.json)
+  POST /api/push/aan        {endpoint}  this device wants a message when a puzzle is logged
+  POST /api/push/uit        {endpoint}  not any more
+/api/log may carry "stil": the endpoint of the device that logs, which then gets no message about it.
+The sync sends the messages (sync/push.py) as soon as data.json has new logs.
+
 Every write action needs the password and goes to the Sheet's Apps Script (SHEET_WRITE_URL + SHEET_WRITE_SECRET,
 apps-script/Puzzullu.gs). After it the sync runs at once and waits until Google's CSV export shows the change.
 Wrong passwords are rate-limited per address. A body may carry "id" (a random string), so a retry is not saved twice.
@@ -26,6 +33,8 @@ Settings via environment variables (see docker-compose.yml):
   PORT                 default 8000
 """
 
+import base64
+import fcntl
 import hmac
 import http.server
 import json
@@ -33,7 +42,9 @@ import os
 import re
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
+from contextlib import contextmanager
 from datetime import datetime
 
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
@@ -45,6 +56,12 @@ SYNC_FLAG = os.path.join(os.path.dirname(os.path.abspath(DATA_FILE)), "sync-now"
 
 MAX_FAILS, FAIL_WINDOW = 10, 15 * 60  # 10 wrong passwords per address per 15 minutes
 fails = {}
+DATA_DIR = os.path.dirname(os.path.abspath(DATA_FILE))
+MAX_PUSH, PUSH_PER_HOUR = 500, 30  # devices in all; sign-ups per address per hour
+push_calls = {}
+# only the push services of the browsers (as in sync/push.py), so the server never sends requests anywhere else
+PUSH_HOSTS = re.compile(r"^(fcm\.googleapis\.com|android\.googleapis\.com|updates\.push\.services\.mozilla\.com"
+                        r"|web\.push\.apple\.com|[a-z0-9-]+\.notify\.windows\.com)$")
 
 ID_RE = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
 KEY_RE = re.compile(r"^[a-z0-9%][a-z0-9%-]{0,120}$")  # afbeelding_id / exemplaar_id (slugs; JvH has one with %C3%A8)
@@ -68,6 +85,46 @@ def ask_sync(**what):
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(what, f)
     os.replace(tmp, SYNC_FLAG)
+
+
+def valid_endpoint(url):
+    if not isinstance(url, str) or len(url) > 1000:
+        return False
+    try:
+        u = urllib.parse.urlsplit(url)
+        return (u.scheme == "https" and not u.username and not u.password and u.port is None
+                and bool(PUSH_HOSTS.match(u.hostname or "")) and len(u.path) > 1)
+    except ValueError:
+        return False
+
+
+@contextmanager
+def push_lock():
+    """The same lock as sync/push.py, so the API and the sync never overwrite each other's changes."""
+    with open(os.path.join(DATA_DIR, "push.lock"), "a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+def push_file(name, change):
+    """Read data/<name> (a JSON object), let change() alter it, and write it back, all under the lock."""
+    path = os.path.join(DATA_DIR, name)
+    with push_lock():
+        try:
+            with open(path, encoding="utf-8") as f:
+                value = json.load(f)
+        except (OSError, ValueError):
+            value = {}
+        if not isinstance(value, dict):
+            value = {}
+        result = change(value)
+        with open(path + ".tmp", "w", encoding="utf-8") as f:
+            json.dump(value, f)
+        os.replace(path + ".tmp", path)
+        return result
 
 
 class Invalid(ValueError):
@@ -213,6 +270,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             except OSError:
                 age = None
             return self.send(200, {"ok": True, "dataAgeSeconds": age, "schrijven": bool(SHEET_WRITE_URL and SHEET_WRITE_SECRET)})
+        if path == "/api/push/sleutel":
+            try:
+                with open(os.path.join(DATA_DIR, "vapid.json"), encoding="utf-8") as f:
+                    k = json.load(f)
+                key = base64.urlsafe_b64encode(b"\x04" + k["x"].to_bytes(32, "big") + k["y"].to_bytes(32, "big"))
+                return self.send(200, {"sleutel": key.rstrip(b"=").decode()})
+            except (OSError, ValueError, KeyError, TypeError, AttributeError, OverflowError):
+                return self.send(503, {"error": "Meldingen zijn nog niet klaar op de server. Probeer het later nog een keer."})
         if path == "/api/auth":
             if self.authorized():
                 self.send(200, {"ok": True, "schrijven": bool(SHEET_WRITE_URL and SHEET_WRITE_SECRET)})
@@ -227,11 +292,37 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 log("sync asked for" + (" with JvH catalogue" if path == "/api/jvh" else ""))
                 self.send(200, {"ok": True})
             return
+        if path in ("/api/push/aan", "/api/push/uit"):
+            return self.push(path)
         if path in ACTIONS:
             if self.authorized():
                 self.write(path)
             return
         self.send(404, {"error": "Onbekend adres."})
+
+    def push(self, path):
+        ip, now = self.client(), time.time()
+        recent = [t for t in push_calls.get(ip, []) if now - t < 3600]
+        if len(recent) >= PUSH_PER_HOUR:
+            return self.send(429, {"error": "Te veel aanvragen. Probeer het over een uur opnieuw."})
+        push_calls[ip] = recent + [now]
+        b = self.body(limit=2048)
+        endpoint = (b or {}).get("endpoint")
+        if not valid_endpoint(endpoint):
+            return self.send(400, {"error": "Deze browser kan geen meldingen ontvangen."})
+
+        def change(data):
+            subs = [s for s in data.get("abonnees", []) if isinstance(s, dict) and s.get("endpoint") != endpoint]
+            if path == "/api/push/aan":
+                if len(subs) >= MAX_PUSH:
+                    return False
+                subs.append({"endpoint": endpoint, "sinds": datetime.now().isoformat(timespec="seconds")})
+            data["abonnees"] = subs
+            return True
+
+        if not push_file("push.json", change):
+            return self.send(503, {"error": "Er staan al te veel apparaten aan. Vraag het Piet."})
+        self.send(200, {"ok": True})
 
     def write(self, path):
         action, check, wait_for = ACTIONS[path]
@@ -253,6 +344,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not isinstance(result, dict) or not result.get("ok"):
             log(f"{action}: the Sheet said: {result}")
             return self.send(502, {"error": f"De Sheet zei: {(result or {}).get('error', 'geen antwoord')}"})
+        # the device that logs gets no push message about its own log
+        stil = b.get("stil")
+        if path == "/api/log" and result.get("log_id") and valid_endpoint(stil):
+            try:
+                push_file("push-stil.json", lambda d: d.__setitem__(result["log_id"], {"e": stil, "t": time.time()}))
+            except OSError as e:
+                log(f"push-stil.json: {e}")
         ask_sync(wacht=wait_for(fields, result))
         log(f"{action} saved: {json.dumps(result, ensure_ascii=False)}")
         self.send(200, result)

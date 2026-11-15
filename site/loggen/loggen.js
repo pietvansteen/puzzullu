@@ -238,7 +238,9 @@
     knop.disabled = true;
     knop.textContent = "Opslaan…";
     try {
-      const r = await bewaar("/api/log", body);
+      // this device gets no push message about its own log
+      const r = await bewaar("/api/log", { ...body, stil: await PZ.meldingen.endpoint() });
+      if (await PZ.meldingen.endpoint()) PZ.meldingen.gezien(Number(String(r.log_id).replace(/\D/g, "")) || undefined);
       const sec = t ? t.split(":").reduce((n, x) => n * 60 + Number(x), 0) : null;
       const nieuw = { id: r.log_id, exemplaar: tijdDoos.id, sec, datum: d, makers: [...wie].sort((x, y) => x.localeCompare(y, "nl")),
         missend: body.compleet === "ja" ? 0 : mist, gefilmd: body.gefilmd, video: "",

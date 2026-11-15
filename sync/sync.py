@@ -45,6 +45,7 @@ import urllib.request
 from datetime import date, datetime, timezone
 
 import jvh
+import push
 from jvh import name_key, slug
 
 SHEET_ID = os.environ.get("SHEET_ID", "1vjYevi2UsbTKv6OzcFz99j65SVbGRbZt_eLIciEVIHA")
@@ -437,6 +438,35 @@ def build(tabs):
     }
 
 
+# push messages for new logs: the logs data.json already had, so only new ones count (None = nothing known yet)
+PUSH_SUBJECT = os.environ.get("PUSH_SUBJECT", "https://puzzullu.funkyorbit.nl/")
+known_logs = None
+
+
+def remember_logs():
+    global known_logs
+    try:
+        with open(OUT_FILE, encoding="utf-8") as f:
+            known_logs = {l["id"] for l in json.load(f).get("logs", [])}
+    except (OSError, ValueError, KeyError, TypeError):
+        known_logs = None
+
+
+def push_new_logs(data):
+    """After a sync: a push message to every device that asked for one, when there are new logs.
+    On the very first sync (no old data.json) there is nothing to compare with, so no message."""
+    global known_logs
+    ids = {l["id"] for l in data["logs"]}
+    new = sorted(ids - known_logs) if known_logs is not None else []
+    known_logs = ids
+    if not new:
+        return
+    try:
+        push.notify(os.path.dirname(os.path.abspath(OUT_FILE)), new, PUSH_SUBJECT, log=log)
+    except Exception as e:  # a push problem never stops the sync
+        log(f"push: ERROR {e}")
+
+
 def write_atomic(data, path):
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     tmp = path + ".tmp"
@@ -461,6 +491,7 @@ def sync_once():
     write_atomic(data, OUT_FILE)
     log(f"OK ({data['layout']} layout): {len(data['afbeeldingen'])} puzzles, {len(data['exemplaren'])} boxes, "
         f"{len(data['logs'])} logs, {len(data['nk'])} NK times -> {OUT_FILE}")
+    push_new_logs(data)
     return data
 
 
@@ -498,6 +529,11 @@ def main():
     if sys.argv[1:2] == ["--snapshot"]:
         return snapshot(sys.argv[2] if len(sys.argv) > 2 else "testdata")
     asked = {}
+    remember_logs()
+    try:
+        push.keys(os.path.dirname(os.path.abspath(OUT_FILE)))  # so the API can hand out the public key
+    except OSError as e:
+        log(f"push: no key pair: {e}")
     while True:
         update_jvh(force=bool(asked and asked.get("jvh")))
         want = (asked or {}).get("wacht") or ({"lijst": "logs", "id": asked["log"]} if (asked or {}).get("log") else None)

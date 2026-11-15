@@ -79,6 +79,10 @@ Na een wijziging in `Puzzullu.gs`: *Implementeren > Implementaties beheren*, bew
 
 Met de Apps Script voegt de sync ook nieuwe puzzels van de JvH-site toe aan het tabblad Afbeeldingen.
 
+## Meldingen
+
+Op de statistieken (bij Laatst gemaakt) kan iedereen op zijn eigen apparaat meldingen aanzetten: zodra de sync een nieuwe tijd in de Sheet ziet, krijgt elk aangemeld apparaat een melding, behalve het apparaat dat de tijd zelf logde. Er is niets in te stellen: de sync maakt de sleutels de eerste keer zelf (`data/vapid.json`), en de aanmeldingen staan in `data/push.json`. Op de iPhone werkt het alleen als Puzzullu op het beginscherm staat (iOS 16.4 of nieuwer).
+
 ## Veiligheid
 
 - **Geen open poorten.** De site is alleen via de Cloudflare Tunnel bereikbaar; die maakt zelf een verbinding naar buiten. De tunnel stuurt alleen door naar de webserver (nginx), niet naar de rest van de NAS.
@@ -88,6 +92,7 @@ Met de Apps Script voegt de sync ook nieuwe puzzels van de JvH-site toe aan het 
 - **Schrijven gebeurt bij Google, niet op de NAS.** De API stuurt een actie naar de Apps Script met een geheime sleutel (`SHEET_WRITE_SECRET`); de Apps Script kent alleen die zeven acties en kan geen rijen wissen.
 - **Gegevens uit de Sheet zijn tekst.** De sync leest de Sheet als CSV (formules worden niet uitgevoerd, alleen hun uitkomst als tekst), en de site toont alle tekst ge-escaped, dus een naam of titel kan geen code op de pagina worden.
 - **Geheimen staan alleen in `.env` op de server**, niet in git.
+- **Meldingen** (Up-to-date blijven): aanmelden kan zonder wachtwoord, maar de server bewaart alleen het adres dat de browser geeft, en alleen als dat bij een pushdienst van Google, Mozilla, Apple of Microsoft hoort. Naar andere adressen stuurt de server nooit iets. Hooguit 500 apparaten en 30 aanmeldingen per uur per adres. Een melding is leeg ("er is iets nieuws"); de telefoon haalt zelf `data.json` op. De sleutels (`data/vapid.json`) maakt de sync zelf en worden niet door nginx geserveerd.
 
 ## Lokaal testen
 

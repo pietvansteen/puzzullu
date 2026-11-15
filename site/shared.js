@@ -49,5 +49,55 @@
     nav.insertAdjacentHTML("beforeend", `<a href="/loggen/"${here ? ' aria-current="page"' : ""}>Loggen</a>`);
   }
 
-  window.PZ = { esc, getal: (n) => getal.format(n), tijd, datum, sterren, data, admin, youtube };
+  // push messages on this device ("Up-to-date blijven"): the service worker /sw.js shows them
+  const meldingen = {
+    // can this browser get them at all? (an iPhone only as an app on the home screen)
+    kan: () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window,
+    iphoneZonderApp: () => /iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone
+      && !matchMedia("(display-mode: standalone)").matches,
+    geblokkeerd: () => "Notification" in window && Notification.permission === "denied",
+    async abonnement() {
+      if (!meldingen.kan()) return null;
+      const reg = await navigator.serviceWorker.getRegistration("/");
+      return reg ? reg.pushManager.getSubscription() : null;
+    },
+    // the endpoint of this device when it gets messages, so a log from here doesn't notify itself
+    async endpoint() {
+      try { return ((await meldingen.abonnement()) || {}).endpoint || ""; } catch (e) { return ""; }
+    },
+    async aan() {
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+      if ((await Notification.requestPermission()) !== "granted") throw new Error("Je hebt meldingen niet toegestaan.");
+      const r = await fetch("/api/push/sleutel", { cache: "no-store" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "De server is niet bereikbaar.");
+      const raw = atob(j.sleutel.replace(/-/g, "+").replace(/_/g, "/"));
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true,
+        applicationServerKey: Uint8Array.from(raw, (c) => c.charCodeAt(0)) });
+      await meldingen.melden("/api/push/aan", sub.endpoint);
+      // what is on the site now counts as seen, so the first message is about a new puzzle
+      await meldingen.gezien();
+    },
+    async uit() {
+      const sub = await meldingen.abonnement();
+      if (!sub) return;
+      await meldingen.melden("/api/push/uit", sub.endpoint).catch(() => {});
+      await sub.unsubscribe();
+    },
+    async melden(pad, endpoint) {
+      const r = await fetch(pad, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint }) });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Dat lukte niet.");
+    },
+    // the highest log number this device knows (the service worker reads it to tell what is new);
+    // without n: the newest log on the site now
+    async gezien(n) {
+      try {
+        if (n == null) n = Math.max(0, ...(await data()).logs.map((l) => Number(String(l.id).replace(/\D/g, "")) || 0));
+        await (await caches.open("pz-push")).put("/pz-push/gezien", new Response(String(n)));
+      } catch (e) { /* no caches in a private window: then a message may also mention older logs */ }
+    },
+  };
+
+  window.PZ = { esc, getal: (n) => getal.format(n), tijd, datum, sterren, data, admin, youtube, meldingen };
 })();
