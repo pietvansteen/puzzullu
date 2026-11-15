@@ -37,6 +37,7 @@ services:
 
   api:
     image: python:3.13-alpine
+    container_name: puzzullu-api   # unique: "api" can also be another project's service on the shared tunnel network
     restart: unless-stopped
     command: ["python", "-u", "/app/api.py"]
     environment:

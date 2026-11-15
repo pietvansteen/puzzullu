@@ -32,7 +32,7 @@ python3 tools/release.py
 
 There are no tests or linters. Verify in a browser.
 
-Production: `docker compose up -d` (services `web` nginx, container `puzzullu-web`, port 8089; `sync`; `api`). Secrets `ADMIN_TOKEN`, `SHEET_WRITE_URL`, `SHEET_WRITE_SECRET` live in `.env` on the server only (`.env.example` lists them). Deploy = push to GitHub, then the owner runs `git pull` on the server: `site/` changes are live at once; changes to `sync.py`, `api.py` or `nginx.conf` need `sudo docker compose restart sync api web`; changes to `docker-compose.yml` need `sudo docker compose up -d`. The Sheet's time zone must be Europe/Amsterdam.
+Production: `docker compose up -d` (services `web` nginx, container `puzzullu-web`, port 8089; `sync`; `api`, container `puzzullu-api`, which nginx proxies to by that name because `api` is not unique on the shared `tunnel` network). Secrets `ADMIN_TOKEN`, `SHEET_WRITE_URL`, `SHEET_WRITE_SECRET` live in `.env` on the server only (`.env.example` lists them). Deploy = push to GitHub, then the owner runs `git pull` on the server: `site/` changes are live at once; changes to `sync.py`, `api.py` or `nginx.conf` need `sudo docker compose restart sync api web`; changes to `docker-compose.yml` need `sudo docker compose up -d`. The Sheet's time zone must be Europe/Amsterdam.
 
 Hosting goes through funkyorbit's existing Cloudflare Tunnel: its cloudflared joins the external Docker network `tunnel`, and the public hostname points to `http://puzzullu-web:80` (not `http://web:80`, which is funkyorbit's nginx). Puzzullu has no cloudflared or `TUNNEL_TOKEN` of its own.
 
