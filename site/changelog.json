@@ -1,4 +1,10 @@
 [
+ {"version": "1.4.1",
+  "date": "2026-11-15",
+  "changes": [
+  "Het blokje over meldingen kun je wegklikken met het kruisje. Met het belletje naast Laatst gemaakt open je het weer, en het belletje kleurt als je meldingen aan hebt.",
+  "Lukt het aanzetten van meldingen niet, dan zie je een duidelijke melding en staan ze ook echt uit. Was je telefoon half aangemeld, dan regelt de site dat nu vanzelf."
+ ]},
  {"version": "1.4.0",
   "date": "2026-11-15",
   "changes": [

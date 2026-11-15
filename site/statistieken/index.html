@@ -8,7 +8,7 @@
 <style>html { background: #0f1f3f; color-scheme: dark; }</style>
 <title>Statistieken · Puzzullu</title>
 <meta name="description" content="Statistieken van Puzzullu: hoeveel puzzels we hebben en gelegd hebben, wie het snelst is en hoe we het doen tegen het NK.">
-<link rel="icon" href="/logo.svg?v=1.4.0-b5f765" type="image/svg+xml">
+<link rel="icon" href="/logo.svg?v=1.4.1-c78d90" type="image/svg+xml">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Puzzullu">
@@ -18,12 +18,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="/style.css?v=1.4.0-b5f765">
+<link rel="stylesheet" href="/style.css?v=1.4.1-c78d90">
 </head>
 <body>
 <header class="wrap top">
   <a class="brand" href="/" aria-label="Puzzullu, overzicht">
-    <img src="/logo.svg?v=1.4.0-b5f765" width="44" height="44" alt="">
+    <img src="/logo.svg?v=1.4.1-c78d90" width="44" height="44" alt="">
     <span>Puzzullu</span>
   </a>
   <nav class="nav" aria-label="Pagina's">
@@ -47,10 +47,14 @@
   </section>
 
   <section class="blok">
-    <h2>Laatst gemaakt</h2>
+    <div class="kop-rij">
+      <h2>Laatst gemaakt</h2>
+      <button type="button" class="bel" id="bel" aria-controls="meldingen" aria-expanded="false" title="Meldingen" hidden>🔔</button>
+    </div>
     <div class="tabel-wrap"><table class="tabel" id="laatst"></table></div>
     <button type="button" class="link-btn" id="laatst-meer" hidden></button>
     <div class="meldingen" id="meldingen" hidden>
+      <button type="button" class="sluit" id="meld-sluit" aria-label="Sluiten" title="Sluiten">×</button>
       <p><b>🔔 Up-to-date blijven?</b> <span id="meld-tekst"></span></p>
       <button type="button" class="knop klein" id="meld-knop" hidden></button>
       <p class="fout" id="meld-fout" role="alert"></p>
@@ -114,8 +118,8 @@
   <p class="muted" id="updated"></p>
 </main>
 
-<footer class="wrap"><span>Puzzullu</span> <a class="version" href="/wat-is-nieuw/">v1.4.0 · Wat is nieuw</a></footer>
-<script src="/shared.js?v=1.4.0-b5f765"></script>
-<script src="/statistieken/statistieken.js?v=1.4.0-b5f765"></script>
+<footer class="wrap"><span>Puzzullu</span> <a class="version" href="/wat-is-nieuw/">v1.4.1 · Wat is nieuw</a></footer>
+<script src="/shared.js?v=1.4.1-c78d90"></script>
+<script src="/statistieken/statistieken.js?v=1.4.1-c78d90"></script>
 </body>
 </html>

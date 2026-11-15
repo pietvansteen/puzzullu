@@ -506,8 +506,17 @@ footer a { color: var(--muted); }
 .stats h3 { font-size: 1.1rem; margin: 18px 0 8px; }
 .stats .klein { font-size: .85rem; margin: 6px 0 0; }
 .feitje { gap: 10px; margin-top: 18px; }
-.meldingen { display: grid; gap: 10px; justify-items: start; margin-top: 14px; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 12px; }
+.meldingen { position: relative; display: grid; gap: 10px; justify-items: start; margin-top: 14px; padding: 12px 44px 12px 14px; border: 1px dashed var(--line); border-radius: 12px; }
 .meldingen p { margin: 0; }
+.meldingen .sluit { position: absolute; top: 4px; right: 4px; width: 36px; height: 36px; border: 0; border-radius: 50%; background: none; color: var(--muted); font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.meldingen .sluit:hover { background: var(--surface); color: var(--ink); }
+.kop-rij { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.kop-rij h2 { margin: 0; }
+.stats .kop-rij { margin-bottom: .4em; }
+.bel { width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); font-size: 1.05rem; line-height: 1; cursor: pointer; filter: grayscale(1); opacity: .75; }
+.bel.aan { border-color: var(--accent); filter: none; opacity: 1; }
+.bel[aria-expanded="true"] { background: var(--surface-2); }
+.bel:focus-visible, .meldingen .sluit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .feitje-kop { font: 600 .95rem/1.2 var(--f-display); color: var(--accent); }
 .feitje-tekst { font-size: 1.08rem; }
 .knop.dobbel { display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 3px 0 #c9971f; transition: transform .1s, box-shadow .1s; }

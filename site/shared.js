@@ -71,11 +71,16 @@
       if ((await Notification.requestPermission()) !== "granted") throw new Error("Je hebt meldingen niet toegestaan.");
       const r = await fetch("/api/push/sleutel", { cache: "no-store" });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error || "De server is niet bereikbaar.");
+      if (!r.ok) throw new Error(meldingen.fout(r, j));
       const raw = atob(j.sleutel.replace(/-/g, "+").replace(/_/g, "/"));
       const sub = await reg.pushManager.subscribe({ userVisibleOnly: true,
         applicationServerKey: Uint8Array.from(raw, (c) => c.charCodeAt(0)) });
-      await meldingen.melden("/api/push/aan", sub.endpoint);
+      try {
+        await meldingen.melden("/api/push/aan", sub.endpoint);
+      } catch (e) {
+        await sub.unsubscribe().catch(() => {}); // the server doesn't know this device, so it is not on
+        throw e;
+      }
       // what is on the site now counts as seen, so the first message is about a new puzzle
       await meldingen.gezien();
     },
@@ -87,7 +92,14 @@
     },
     async melden(pad, endpoint) {
       const r = await fetch(pad, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint }) });
-      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Dat lukte niet.");
+      if (!r.ok) throw new Error(meldingen.fout(r, await r.json().catch(() => ({}))));
+    },
+    fout: (r, j) => (r.status === 404 ? "Meldingen zijn nog niet klaar op de server. Probeer het later nog een keer."
+      : j.error || "De server is niet bereikbaar."),
+    // on this device it is on: tell the server again (it may have lost it, or never got it)
+    async opnieuw() {
+      const sub = await meldingen.abonnement();
+      if (sub) await meldingen.melden("/api/push/aan", sub.endpoint);
     },
     // the highest log number this device knows (the service worker reads it to tell what is new);
     // without n: the newest log on the site now

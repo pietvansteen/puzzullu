@@ -236,8 +236,21 @@
   // "Up-to-date blijven": a push message on this device when a puzzle is logged
   async function meldingen() {
     const M = PZ.meldingen;
+    const DICHT = "pz-meldingen-dicht"; // closed with the ×: then only the bell next to the heading opens it
+    let dicht = false;
+    try { dicht = localStorage.getItem(DICHT) === "1"; } catch (e) { /* private window */ }
+    const toon = (open) => {
+      dicht = !open;
+      try { dicht ? localStorage.setItem(DICHT, "1") : localStorage.removeItem(DICHT); } catch (e) { /* ignore */ }
+      $("meldingen").hidden = dicht;
+      $("bel").setAttribute("aria-expanded", String(!dicht));
+    };
+    $("bel").addEventListener("click", () => toon(dicht));
+    $("meld-sluit").addEventListener("click", () => toon(false));
     const teken = async () => {
-      $("meldingen").hidden = false;
+      $("meldingen").hidden = dicht;
+      $("bel").hidden = false;
+      $("bel").setAttribute("aria-expanded", String(!dicht));
       $("meld-fout").textContent = "";
       const knop = $("meld-knop");
       if (!M.kan()) {
@@ -248,6 +261,8 @@
         return;
       }
       const aan = !!(await M.abonnement().catch(() => null));
+      $("bel").classList.toggle("aan", aan);
+      $("bel").title = aan ? "Meldingen staan aan" : "Meldingen";
       knop.hidden = false;
       knop.classList.toggle("tweede", aan);
       if (aan) {
@@ -276,6 +291,8 @@
       await teken();
     });
     await teken();
+    // on this device it is on: make sure the server knows it too (e.g. after a sign-up the server missed)
+    M.opnieuw().catch(() => {});
   }
 
   function meest() {
