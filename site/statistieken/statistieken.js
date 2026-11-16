@@ -15,6 +15,7 @@
   const VAAK_MIN = 3;      // timed logs a version needs to be "vaak gelegd"
   const VAAK_TOON = 10;
   const PERSONEN = 8;
+  const JAREN = 4;         // years shown before "Meer jaren"
   const JAAR_KEY = "pz-stats-jaar"; // the year chosen at "Per persoon" ("" = all years)
   const LAATST = 5;        // last puzzles done
   const LAATST_KORT = 2;   // of which shown before "Toon nog"      // people shown before "Toon alle"
@@ -196,17 +197,25 @@
       return Object.entries(p).sort((x, y) => y[1].n - x[1].n || y[1].stukjes - x[1].stukjes || x[0].localeCompare(y[0], "nl"))
         .map(([m, x]) => [esc(m), getal(x.n), getal(x.solo), getal(x.stukjes), `${getal(Math.round(x.sec / 3600))} u`]);
     };
-    // the top PERSONEN, the rest behind "Toon alle"
+    // the top PERSONEN, the rest behind "Toon alle"; the last JAREN years, older ones behind "Meer jaren"
     let alle = false;
+    let oud = jaren.indexOf(jaar) >= JAREN;
     const teken = () => {
       const rijen = rijenVan(jaar);
-      $("persoon-jaar").innerHTML = ["", ...jaren].map((j) =>
-        `<button type="button" class="chip" data-jaar="${j}" aria-pressed="${j === jaar}">${j || "Alle jaren"}</button>`).join("");
+      const toon = oud ? jaren : jaren.slice(0, JAREN);
+      $("persoon-jaar").innerHTML = ["", ...toon].map((j) =>
+        `<button type="button" class="chip" data-jaar="${j}" aria-pressed="${j === jaar}">${j || "Alle jaren"}</button>`).join("")
+        + (jaren.length > JAREN ? `<button type="button" class="chip meer" id="meer-jaren" aria-expanded="${oud}">${oud ? "Minder ▴" : "Meer ▾"}</button>` : "");
+      $("persoon-jaar").classList.toggle("open", oud);
       $("per-persoon").innerHTML = tabel(["Naam", "Puzzels", "Solo", "Stukjes", "Puzzeltijd"], alle ? rijen : rijen.slice(0, PERSONEN));
       $("persoon-meer").hidden = rijen.length <= PERSONEN;
       $("persoon-meer").textContent = alle ? "Minder tonen" : `Toon alle ${rijen.length} puzzelaars`;
     };
     $("persoon-jaar").addEventListener("click", (ev) => {
+      if (ev.target.closest("#meer-jaren")) {
+        oud = !oud;
+        return teken();
+      }
       const b = ev.target.closest(".chip[data-jaar]");
       if (!b) return;
       jaar = b.dataset.jaar;
