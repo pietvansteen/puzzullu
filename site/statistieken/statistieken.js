@@ -15,6 +15,7 @@
   const VAAK_MIN = 3;      // timed logs a version needs to be "vaak gelegd"
   const VAAK_TOON = 10;
   const PERSONEN = 8;
+  const JAAR_KEY = "pz-stats-jaar"; // the year chosen at "Per persoon" ("" = all years)
   const LAATST = 5;        // last puzzles done
   const LAATST_KORT = 2;   // of which shown before "Toon nog"      // people shown before "Toon alle"
   const NK_GROOTTE = { solo: 1, duo: 2, team: 4 };
@@ -174,24 +175,44 @@
       + (voet ? `<tfoot><tr>${voet.map((c, i) => `<td${cl(i)}>${c}</td>`).join("")}</tr></tfoot>` : "");
   };
 
+  // per person, all time or in one year (logs without a date only count for all time)
   function perPersoon() {
-    const p = {};
-    for (const l of D.logs) for (const m of l.makers) {
-      const x = (p[m] ||= { n: 0, stukjes: 0, sec: 0, solo: 0 });
-      x.n += 1;
-      x.stukjes += l.gelegd;
-      x.sec += l.sec || 0;
-      if (l.makers.length === 1) x.solo += 1;
-    }
-    const rijen = Object.entries(p).sort((x, y) => y[1].n - x[1].n || x[0].localeCompare(y[0], "nl"))
-      .map(([m, x]) => [esc(m), getal(x.n), getal(x.solo), getal(x.stukjes), `${getal(Math.round(x.sec / 3600))} u`]);
+    const jaren = [...new Set(D.logs.map((l) => (l.datum || "").slice(0, 4)).filter(Boolean))].sort().reverse();
+    let jaar = "";
+    try { jaar = localStorage.getItem(JAAR_KEY) || ""; } catch (e) { /* private window */ }
+    if (!jaren.includes(jaar)) jaar = "";
+    const rijenVan = (j) => {
+      const p = {};
+      for (const l of D.logs) {
+        if (j && !(l.datum || "").startsWith(j)) continue;
+        for (const m of l.makers) {
+          const x = (p[m] ||= { n: 0, stukjes: 0, sec: 0, solo: 0 });
+          x.n += 1;
+          x.stukjes += l.gelegd;
+          x.sec += l.sec || 0;
+          if (l.makers.length === 1) x.solo += 1;
+        }
+      }
+      return Object.entries(p).sort((x, y) => y[1].n - x[1].n || y[1].stukjes - x[1].stukjes || x[0].localeCompare(y[0], "nl"))
+        .map(([m, x]) => [esc(m), getal(x.n), getal(x.solo), getal(x.stukjes), `${getal(Math.round(x.sec / 3600))} u`]);
+    };
     // the top PERSONEN, the rest behind "Toon alle"
     let alle = false;
     const teken = () => {
+      const rijen = rijenVan(jaar);
+      $("persoon-jaar").innerHTML = ["", ...jaren].map((j) =>
+        `<button type="button" class="chip" data-jaar="${j}" aria-pressed="${j === jaar}">${j || "Alle jaren"}</button>`).join("");
       $("per-persoon").innerHTML = tabel(["Naam", "Puzzels", "Solo", "Stukjes", "Puzzeltijd"], alle ? rijen : rijen.slice(0, PERSONEN));
       $("persoon-meer").hidden = rijen.length <= PERSONEN;
       $("persoon-meer").textContent = alle ? "Minder tonen" : `Toon alle ${rijen.length} puzzelaars`;
     };
+    $("persoon-jaar").addEventListener("click", (ev) => {
+      const b = ev.target.closest(".chip[data-jaar]");
+      if (!b) return;
+      jaar = b.dataset.jaar;
+      try { jaar ? localStorage.setItem(JAAR_KEY, jaar) : localStorage.removeItem(JAAR_KEY); } catch (e) { /* ignore */ }
+      teken();
+    });
     $("persoon-meer").addEventListener("click", () => { alle = !alle; teken(); });
     teken();
   }
