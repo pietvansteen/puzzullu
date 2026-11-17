@@ -271,9 +271,9 @@
     let alle = false;
     const teken = () => {
       $("kaartjes").innerHTML = (alle ? lijst : lijst.slice(0, KAARTJES)).map(({ m, n, w }) =>
-        `<li><a class="kaartje" href="/persoon/?naam=${encodeURIComponent(m)}"><b>${esc(m)}</b>`
-        + `<span class="muted">${getal(n)} ${n === 1 ? "puzzel" : "puzzels"}</span>`
-        + (w.huidig ? `<span class="vlam" title="Weekreeks: ${w.huidig} ${w.huidig === 1 ? "week" : "weken"} op rij">🔥 ${w.huidig}</span>` : "") + "</a></li>").join("");
+        `<li><a class="kaartje" href="/persoon/?naam=${encodeURIComponent(m)}"><span class="kaartje-kop"><b>${esc(m)}</b>`
+        + (w.huidig ? `<span class="vlam" title="Weekreeks: ${w.huidig} ${w.huidig === 1 ? "week" : "weken"} op rij">🔥 ${w.huidig}</span>` : "")
+        + `</span><span class="muted">${getal(n)} ${n === 1 ? "puzzel" : "puzzels"}</span></a></li>`).join("");
       $("kaartjes-meer").hidden = lijst.length <= KAARTJES;
       $("kaartjes-meer").textContent = alle ? "Minder tonen" : `Alle puzzelaars (${lijst.length})`;
     };
