@@ -135,8 +135,8 @@
       grenzen: [5, 15, 40, 100, 200], tekst: telwoord("puzzel solo", "puzzels solo"), maak: telt(solo) },
     { id: "onderuur", naam: "Onder het uur", glyph: "stopwatch", uitleg: "Leg een puzzel van 1000 stukjes in minder dan een uur, met hoeveel mensen ook.",
       grenzen: [1, 5, 15, 30, 50], tekst: telwoord("keer", "keer"), maak: telt((l) => l.stukjes === 1000 && l.sec != null && l.sec < 3600) },
-    { id: "snel500", naam: "Snelle 500", glyph: "t500", uitleg: "Leg een puzzel van 500 stukjes in je eentje, zo snel mogelijk.",
-      grenzen: [u(2), u(1, 30), u(1, 15), u(1), u(0, 50)], minder: true, maak: besteTijd((l) => solo(l) && l.stukjes === 500) },
+    { id: "snel500", naam: "Snelle 500", glyph: "t500", uitleg: "Leg een puzzel van 500 stukjes in je eentje, zo snel mogelijk (expertpuzzels tellen niet mee).",
+      grenzen: [u(2), u(1, 30), u(1, 15), u(1), u(0, 50)], minder: true, maak: besteTijd((l) => solo(l) && l.stukjes === 500 && !l.expert) },
     { id: "snel1000", naam: "Snelle 1000", glyph: "t1000", uitleg: "Leg een puzzel van 1000 stukjes in je eentje, zo snel mogelijk.",
       grenzen: [u(4), u(3), u(2, 30), u(2), u(1, 45)], minder: true, maak: besteTijd((l) => solo(l) && l.stukjes === 1000) },
     { id: "snelduo", naam: "Snel duo", glyph: "duoSnel", uitleg: "Leg een puzzel van 1000 stukjes met z'n tweeën, zo snel mogelijk.",
@@ -191,8 +191,8 @@
       maak: () => { const n = new Map(); let max = 0; return (l) => { if (l.stukjes) { n.set(l.versie, (n.get(l.versie) || 0) + 1); max = Math.max(max, n.get(l.versie)); } return max; }; } },
     { id: "ontdekker", naam: "Ontdekker", glyph: "kompas", uitleg: "Leg zoveel mogelijk verschillende platen.",
       grenzen: [10, 50, 100, 200, 350], tekst: telwoord("plaat", "platen"), maak: verschillend((l) => l.e && l.e.afbeelding) },
-    { id: "alleskunner", naam: "Alleskunner", glyph: "vierkantjes", uitleg: "Leg puzzels met zoveel mogelijk verschillende aantallen stukjes.",
-      grenzen: [3, 5, 8, 12, 18], tekst: telwoord("formaat", "formaten"), maak: verschillend((l) => l.stukjes || null) },
+    { id: "alleskunner", naam: "Alleskunner", glyph: "vierkantjes", uitleg: "Leg puzzels met zoveel mogelijk verschillende aantallen stukjes (500 expert telt als een eigen formaat).",
+      grenzen: [3, 5, 8, 12, 18], tekst: telwoord("formaat", "formaten"), maak: verschillend((l) => (l.stukjes ? l.maat : null)) },
     { id: "zwaar", naam: "Zware jongen", glyph: "halter", uitleg: "Leg de moeilijkste puzzels: die met 5 sterren.",
       grenzen: [1, 5, 15, 30, 60], tekst: telwoord("puzzel met 5 sterren", "puzzels met 5 sterren"), maak: telt((l) => l.a && l.a.rating === 5) },
     { id: "verzamelaar", naam: "Verzamelaar", glyph: "dozen", uitleg: "Heb zoveel mogelijk eigen dozen in de kast (dozen die weg zijn tellen niet).",
@@ -213,8 +213,8 @@
 
   // one level only, always diamond
   const SPECIAAL = [
-    { id: "bliksem", naam: "Bliksem", glyph: "bliksem", uitleg: "Leg een puzzel van 500 stukjes in je eentje binnen 40 minuten.",
-      grenzen: [1], speciaal: true, tekst: telwoord("keer", "keer"), maak: telt((l) => solo(l) && l.stukjes === 500 && l.sec != null && l.sec < u(0, 40)) },
+    { id: "bliksem", naam: "Bliksem", glyph: "bliksem", uitleg: "Leg een puzzel van 500 stukjes (geen expertpuzzel) in je eentje binnen 40 minuten.",
+      grenzen: [1], speciaal: true, tekst: telwoord("keer", "keer"), maak: telt((l) => solo(l) && l.stukjes === 500 && !l.expert && l.sec != null && l.sec < u(0, 40)) },
     { id: "eerste", naam: "Eerste stukje", glyph: "stukjeSter", uitleg: "Je eerste puzzel bij Puzzullu.",
       grenzen: [1], speciaal: true, tekst: telwoord("puzzel", "puzzels"), maak: telt(() => true) },
     { id: "seconde", naam: "Op de seconde", glyph: "roos", uitleg: "Leg een puzzel opnieuw met dezelfde groep, en zit hooguit 10 seconden van de vorige tijd af.",

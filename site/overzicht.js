@@ -349,7 +349,7 @@
   function versie(a, stukjes, exs) {
     const logs = exs.flatMap(({ e, logs }) => logs.map((l) => ({ l, e })));
     const meer = exs.length > 1;
-    const regel = `<b>${stukjes || "?"}</b> ${exs.map(({ e }) => doos(e)).join('<span class="sep"> · </span>')}`
+    const regel = `<b>${stukjes || "?"}</b>${(a.expert || []).includes(stukjes) ? ' <span class="expert-tag" title="Uit de Expert-serie: veel moeilijker dan een gewone 500">expert</span>' : ""} ${exs.map(({ e }) => doos(e)).join('<span class="sep"> · </span>')}`
       + (logs.length ? ` <span class="keer">(${logs.length}x)</span>` : "");
     if (!logs.length) return `<li class="ex-regel">${regel}</li>`;
     logs.sort((x, y) => (x.l.sec ?? Infinity) - (y.l.sec ?? Infinity));

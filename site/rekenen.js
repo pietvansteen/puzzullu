@@ -9,14 +9,23 @@
 
   const naam = (a) => (a ? a.en || a.nl : "?");
 
-  // every log with its box (e), picture (a), piece count, version, team and the pieces really laid (minus known missing)
+  // Expert puzzles (the JvH Expert series, 500 pieces but much harder) are a size of their own: "maat" is the piece
+  // count, plus "e" for an expert version ("500e"), shown as "500 expert". Records, the progress chart, averages and the
+  // prediction keep them apart from the normal 500.
+  const isExpert = (a, stukjes) => !!(a && Array.isArray(a.expert) && a.expert.includes(stukjes));
+  const maatNaam = (x) => `${getal(x.stukjes)}${x.expert ? " expert" : ""}`;
+  // sort sizes: by piece count, the expert version right after the normal one
+  const opMaat = (x, y) => x.stukjes - y.stukjes || x.expert - y.expert;
+
+  // every log with its box (e), picture (a), piece count, size (maat), version, team and the pieces really laid
+  // (minus known missing)
   function voorbereiden(d) {
     const afb = Object.fromEntries(d.afbeeldingen.map((a) => [a.id, a]));
     const ex = Object.fromEntries(d.exemplaren.map((e) => [e.id, e]));
     const logs = d.logs.map((l) => {
       const e = ex[l.exemplaar] || {};
-      const stukjes = e.stukjes || 0;
-      return { ...l, e, a: afb[e.afbeelding], stukjes, versie: `${e.afbeelding}|${stukjes}`, team: l.makers.join("|"),
+      const stukjes = e.stukjes || 0, a = afb[e.afbeelding], expert = isExpert(a, stukjes);
+      return { ...l, e, a, stukjes, expert, maat: `${stukjes}${expert ? "e" : ""}`, versie: `${e.afbeelding}|${stukjes}`, team: l.makers.join("|"),
         gelegd: Math.max(0, stukjes - (typeof l.missend === "number" ? l.missend : 0)) };
     });
     const getimed = logs.filter((l) => l.sec != null && l.stukjes);
@@ -41,12 +50,12 @@
   function records(D) {
     const beste = new Map();
     for (const l of D.getimed) {
-      const k = `${l.stukjes}|${groep(l)}`;
+      const k = `${l.maat}|${groep(l)}`;
       const r = beste.get(k);
       if (!r || l.sec < r.sec || (l.sec === r.sec && (l.datum || "9") < (r.datum || "9"))) beste.set(k, l);
     }
-    return [...beste].map(([k, l]) => ({ stukjes: l.stukjes, groep: groep(l), log: l }))
-      .sort((x, y) => x.stukjes - y.stukjes || x.groep - y.groep);
+    return [...beste].map(([k, l]) => ({ stukjes: l.stukjes, expert: l.expert, maat: l.maat, groep: groep(l), log: l }))
+      .sort((x, y) => opMaat(x, y) || x.groep - y.groep);
   }
 
   // ---------------------------------------------------------------- week streak
@@ -88,7 +97,7 @@
     if (D._rating) return D._rating;
     const groep = new Map(), per = new Map();
     for (const l of D.getimed) {
-      const k = `${l.stukjes}|${groep_(l)}`;
+      const k = `${l.maat}|${groep_(l)}`;
       if (!groep.has(k)) groep.set(k, []);
       groep.get(k).push(Math.log(l.sec));
     }
@@ -97,20 +106,31 @@
     for (const l of D.getimed) {
       const r = (l.a && l.a.rating) || 0;
       if (!per.has(r)) per.set(r, []);
-      per.get(r).push(Math.log(l.sec) - basis.get(`${l.stukjes}|${groep_(l)}`));
+      per.get(r).push(Math.log(l.sec) - basis.get(`${l.maat}|${groep_(l)}`));
     }
     D._rating = new Map([...per].map(([r, xs]) => [r, xs.length >= 5 ? gem(xs) : 0]));
+    // how much slower an expert 500 is than a normal 500 with as many people (for when there are no expert times yet)
+    const extra = D.getimed.filter((l) => l.expert && basis.has(`${l.stukjes}|${groep_(l)}`))
+      .map((l) => Math.log(l.sec) - basis.get(`${l.stukjes}|${groep_(l)}`));
+    D._rating.expert = extra.length >= 3 ? gem(extra) : Math.log(1.4);
     return D._rating;
   }
   const groep_ = (l) => Math.min(l.makers.length, 5);
 
-  // makers: sorted names; returns {sec, van, tot, n, voorzichtig} or null
+  // makers: sorted names; returns {sec, van, tot, n, voorzichtig} or null. An expert puzzle only looks at expert
+  // times; with none at all for this many people, at normal times of that piece count, made slower by how much
+  // slower expert puzzles are.
   function voorspel(D, afbeelding, stukjes, makers) {
     if (!stukjes || !makers.length) return null;
     const f = ratingFactoren(D), r = (a) => f.get((a && a.rating) || 0) || 0;
     const team = [...makers].sort((x, y) => x.localeCompare(y, "nl")).join("|");
-    const metDatum = D.getimed.filter((l) => l.datum && l.stukjes === stukjes);
-    let ls = metDatum.filter((l) => l.makers.join("|") === team), voorzichtig = false;
+    const expert = isExpert(D.afb[afbeelding], stukjes);
+    let metDatum = D.getimed.filter((l) => l.datum && l.stukjes === stukjes && l.expert === expert), plus = 0;
+    if (expert && !metDatum.some((l) => l.makers.length === makers.length)) {
+      metDatum = D.getimed.filter((l) => l.datum && l.stukjes === stukjes && !l.expert);
+      plus = f.expert;
+    }
+    let ls = metDatum.filter((l) => l.makers.join("|") === team), voorzichtig = !!plus;
     if (ls.length < 3) {
       ls = metDatum.filter((l) => l.makers.length === makers.length);
       voorzichtig = true;
@@ -123,9 +143,9 @@
     const som = ws.reduce((n, w) => n + w, 0);
     const m = ws.reduce((n, w, i) => n + w * vs[i], 0) / som;
     const sd = 1.3 * Math.max(0.08, Math.sqrt(ws.reduce((n, w, i) => n + w * (vs[i] - m) ** 2, 0) / som));
-    const doel = m + r(D.afb[afbeelding]);
+    const doel = m + r(D.afb[afbeelding]) + plus;
     const rond = (x) => Math.round(x / 60) * 60;
-    return { sec: rond(Math.exp(doel)), van: rond(Math.exp(doel - sd)), tot: rond(Math.exp(doel + sd)), n: ls.length, voorzichtig };
+    return { sec: rond(Math.exp(doel)), van: rond(Math.exp(doel - sd)), tot: rond(Math.exp(doel + sd)), n: ls.length, voorzichtig, expert, geschat: !!plus };
   }
 
   // "ongeveer 1:05 uur (tussen 0:58 en 1:12)", or "ongeveer 33 minuten (tussen 30 en 36)" under an hour
@@ -138,9 +158,11 @@
   // one line on how the prediction was made
   function voorspelUitleg(v, makers, stukjes) {
     const wie = makers.length === 1 ? makers[0] : "deze groep";
+    if (v.geschat) return `Voorzichtige schatting: nog geen expert-tijden met ${makers.length === 1 ? "één persoon" : `${makers.length} mensen`}, dus gerekend met de gewone ${getal(stukjes)} stukjes, plus de extra tijd die een expertpuzzel kost.`;
+    stukjes = `${getal(stukjes)} stukjes${v.expert ? " (expert)" : ""}`;
     return v.voorzichtig
-      ? `Voorzichtige schatting: ${esc(wie)} ${makers.length === 1 ? "heeft" : "heeft samen"} nog geen 3 tijden op ${getal(stukjes)} stukjes, dus gerekend met ${makers.length === 1 ? "alle solotijden" : `alle groepen van ${makers.length}`} (eigen tijden tellen zwaarder).`
-      : `Gerekend met ${v.n} tijden van ${esc(wie)}${makers.length === 1 ? " solo" : ""} op ${getal(stukjes)} stukjes (de recente tellen het zwaarst) en de moeilijkheid van de puzzel.`;
+      ? `Voorzichtige schatting: ${esc(wie)} ${makers.length === 1 ? "heeft" : "heeft samen"} nog geen 3 tijden op ${stukjes}, dus gerekend met ${makers.length === 1 ? "alle solotijden" : `alle groepen van ${makers.length}`}${v.expert ? " op expertpuzzels" : ""} (eigen tijden tellen zwaarder).`
+      : `Gerekend met ${v.n} tijden van ${esc(wie)}${makers.length === 1 ? " solo" : ""} op ${stukjes} (de recente tellen het zwaarst) en de moeilijkheid van de puzzel.`;
   }
 
   // ---------------------------------------------------------------- calendar heatmap
@@ -210,5 +232,5 @@
     teken();
   }
 
-  window.PZR = { voorbereiden, kalender, naam, records, GROEPEN, groep, mens, mensen, weekreeks, WEEK_STUKJES, weekNr, dagNr, voorspel, voorspelTekst, voorspelUitleg };
+  window.PZR = { voorbereiden, kalender, naam, records, GROEPEN, groep, mens, mensen, weekreeks, WEEK_STUKJES, weekNr, dagNr, voorspel, voorspelTekst, voorspelUitleg, isExpert, maatNaam, opMaat };
 })();

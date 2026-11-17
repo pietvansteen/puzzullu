@@ -374,6 +374,7 @@ def add_catalogue(afbeeldingen):
     for a in afbeeldingen:
         c = by_id.get(a["id"]) or by_key.get(name_key(a["en"])) or by_key.get(name_key(a["nl"]))
         a["versies"] = c["versies"] if c else []
+        a["expert"] = c.get("expert", []) if c else []
         a["namen"], a["verwant"] = [], []
         if c:
             seen.add(c["id"])

@@ -117,11 +117,11 @@
       f.push(`De grootste verbetering: ${esc(wie(eerst.makers))} legden <i>${esc(naam(eerst.a))}</i> (${eerst.stukjes}) eerst in ${tijd(eerst.sec)} en later in ${tijd(laatst.sec)}: <b>${woorden(verbetering.winst)} sneller</b>.`);
     }
 
-    // fastest ever per piece count (sizes with at least 5 timed logs)
-    for (const [stukjes, lijst] of groepeer(getimed, (l) => l.stukjes)) {
+    // fastest ever per size (sizes with at least 5 timed logs; expert 500 apart from the normal 500)
+    for (const [, lijst] of groepeer(getimed, (l) => l.maat)) {
       if (lijst.length < 5) continue;
       const s = lijst.reduce((x, y) => (y.sec < x.sec ? y : x));
-      f.push(`De snelste ${getal(stukjes)} ooit: <b>${tijd(s.sec)}</b> door ${esc(wie(s.makers))}, met <i>${esc(naam(s.a))}</i>.`);
+      f.push(`De snelste ${window.PZR.maatNaam(s)} ooit: <b>${tijd(s.sec)}</b> door ${esc(wie(s.makers))}, met <i>${esc(naam(s.a))}</i>.`);
     }
     const langst = getimed.reduce((x, y) => (!x || y.sec > x.sec ? y : x), null);
     if (langst) f.push(`De langste puzzelsessie: <i>${esc(naam(langst.a))}</i> (${getal(langst.stukjes)}) door ${esc(wie(langst.makers))}, in <b>${tijd(langst.sec)}</b>.`);
@@ -225,11 +225,15 @@
       Object.entries(o).sort((x, y) => y[1].n - x[1].n).map(([n, x]) => [esc(n), getal(x.n), getal(x.stukjes)]),
       ["Samen", getal(D.dozen.length), getal(som(D.dozen.map((e) => e.stukjes || 0)))]);
 
-    const maten = [...new Set(D.dozen.map((e) => e.stukjes).concat(D.logs.map((l) => l.stukjes)).filter(Boolean))].sort((x, y) => x - y);
-    $("per-stukjes").innerHTML = tabel(["Stukjes", "Dozen", "Gelegd", "Snelste"], maten.map((s) => {
-      const t = D.getimed.filter((l) => l.stukjes === s);
+    // per size; an expert 500 is its own row
+    const R = window.PZR, doosMaat = (e) => ({ stukjes: e.stukjes, expert: R.isExpert(D.afb[e.afbeelding], e.stukjes) });
+    const sleutel = (x) => `${x.stukjes}${x.expert ? "e" : ""}`;
+    const maten = [...new Map(D.dozen.map(doosMaat).concat(D.logs).filter((x) => x.stukjes).map((x) => [sleutel(x), { stukjes: x.stukjes, expert: x.expert }])).values()].sort(R.opMaat);
+    $("per-stukjes").innerHTML = tabel(["Stukjes", "Dozen", "Gelegd", "Snelste"], maten.map((m) => {
+      const k = sleutel(m);
+      const t = D.getimed.filter((l) => l.maat === k);
       const snel = t.length ? t.reduce((x, y) => (y.sec < x.sec ? y : x)) : null;
-      return [getal(s), getal(D.dozen.filter((e) => e.stukjes === s).length), getal(D.logs.filter((l) => l.stukjes === s).length),
+      return [esc(R.maatNaam(m)), getal(D.dozen.filter((e) => sleutel(doosMaat(e)) === k).length), getal(D.logs.filter((l) => l.maat === k).length),
         snel ? `<span title="${esc(wie(snel.makers))}, ${esc(naam(snel.a))}">${tijd(snel.sec)}</span>` : "–"];
     }));
   }
@@ -241,15 +245,15 @@
   function records() {
     const lijst = window.PZR.records(D);
     const aantal = {};
-    for (const l of D.getimed) aantal[l.stukjes] = (aantal[l.stukjes] || 0) + 1;
-    const maten = [...new Set(lijst.map((r) => r.stukjes))];
+    for (const l of D.getimed) aantal[l.maat] = (aantal[l.maat] || 0) + 1;
+    const maten = [...new Set(lijst.map((r) => r.maat))];
     const vaak = maten.filter((s) => aantal[s] >= REC_VAAK);
     const naamGroep = Object.fromEntries(window.PZR.GROEPEN);
     let alle = false;
     const teken = () => {
-      $("records").innerHTML = (alle ? maten : vaak).map((s) => `<div class="rec-blok"><h3>${getal(s)} stukjes</h3><ul class="rec-lijst">`
-        + lijst.filter((r) => r.stukjes === s).map(({ groep, log: l }) => `<li><span class="rec-groep">${naamGroep[groep]}</span>`
-          + `<span class="rec-tijd">🏆 ${tijd(l.sec)}</span><span class="rec-wie">${window.PZR.mensen(l.makers)}`
+      $("records").innerHTML = (alle ? maten : vaak).map((s) => `<div class="rec-blok"><h3>${getal(parseInt(s, 10))} stukjes${s.endsWith("e") ? ' <span class="expert-tag">expert</span>' : ""}</h3><ul class="rec-lijst">`
+        + lijst.filter((r) => r.maat === s).map(({ groep, log: l }) => `<li><span class="rec-groep">${naamGroep[groep]}</span>`
+          + `<span class="rec-tijd">${tijd(l.sec)}</span><span class="rec-wie">${window.PZR.mensen(l.makers)}`
           + `<small class="muted">${esc(naam(l.a))}${l.datum ? ` · <span class="nw">sinds ${datum(l.datum)}</span>` : ""}</small></span></li>`).join("")
         + "</ul></div>").join("")
         + (maten.length > vaak.length ? `<button type="button" class="link-btn" id="rec-meer">${alle ? "Minder tonen" : `Meer aantallen stukjes (${maten.length - vaak.length})`}</button>` : "");
@@ -409,11 +413,12 @@
   // time against date on 500 or 1000 pieces, with a smooth trend line
   function progressie() {
     const makers = eigen[0].makers;
-    const ls = eigen.filter((l) => l.stukjes === maat && l.datum).sort((x, y) => x.datum.localeCompare(y.datum));
-    const kop = `<div class="row grafiek-kop"><h3>Op ${maat} stukjes</h3><div class="chips" role="group" aria-label="Aantal stukjes">`
+    // expert puzzles are much harder: they would spoil the trend on 500
+    const ls = eigen.filter((l) => l.stukjes === maat && !l.expert && l.datum).sort((x, y) => x.datum.localeCompare(y.datum));
+    const kop = `<div class="row grafiek-kop"><h3>Op ${maat} stukjes${maat === 500 ? ' <small class="muted">zonder expert</small>' : ""}</h3><div class="chips" role="group" aria-label="Aantal stukjes">`
       + MATEN.map((m) => `<button type="button" class="chip" data-maat="${m}" aria-pressed="${m === maat}">${m}</button>`).join("") + "</div></div>";
     if (ls.length < MIN_TREND) {
-      $("progressie").innerHTML = `${kop}<p class="muted">${esc(wie(makers))} ${makers.length === 1 ? "heeft" : "hebben"} ${ls.length ? `pas ${ls.length} keer` : "nog geen"} ${maat} stukjes met tijd en datum gelegd. Voor een trend zijn er minstens ${MIN_TREND} nodig.</p>`;
+      $("progressie").innerHTML = `${kop}<p class="muted">${esc(wie(makers))} ${makers.length === 1 ? "heeft" : "hebben"} ${ls.length ? `pas ${ls.length} keer` : "nog geen"} ${maat} stukjes${maat === 500 ? " (geen expert)" : ""} met tijd en datum gelegd. Voor een trend zijn er minstens ${MIN_TREND} nodig.</p>`;
       return;
     }
     const k = Math.min(5, Math.floor(ls.length / 2));

@@ -685,3 +685,6 @@ a.mens:hover, a.mens:focus-visible { color: var(--accent); text-decoration: unde
 .wie-legt { display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
 .wie-legt .feitje-kop { margin: 0; }
 .wie-legt .feitje-kop .muted { font: 400 .85rem var(--f-body); }
+
+/* Expert puzzles (JvH Expert series): a size of their own */
+.expert-tag { display: inline-block; padding: 0 7px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); font: 600 .72rem/1.5 var(--f-body); letter-spacing: .3px; vertical-align: 1px; }

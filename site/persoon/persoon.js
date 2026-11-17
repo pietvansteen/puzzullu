@@ -40,24 +40,26 @@
       + (w.langste ? ` Langste reeks: ${w.langste} ${w.langste === 1 ? "week" : "weken"}${w.langsteTot ? `, tot de week van ${datum(w.langsteTot)}` : ""}.` : "") + "</p>";
   }
 
+  // the records this person holds now: one line on top, then per size and group the time (no trophy on every row)
   function records(D) {
-    const mijn = R.records(D).filter((r) => r.log.makers.includes(wie));
+    const alle = R.records(D), mijn = alle.filter((r) => r.log.makers.includes(wie));
     const naamGroep = Object.fromEntries(R.GROEPEN);
     $("p-records").innerHTML = mijn.length
-      ? `<ul class="rec-lijst">${mijn.map(({ stukjes, groep, log: l }) => `<li><span class="rec-groep">${getal(stukjes)}<br>${naamGroep[groep]}</span>`
-        + `<span class="rec-tijd">🏆 ${tijd(l.sec)}</span><span class="rec-wie">${R.mensen(l.makers)}`
-        + `<small class="muted">${esc(R.naam(l.a))}${l.datum ? ` · <span class="nw">sinds ${datum(l.datum)}</span>` : ""}</small></span></li>`).join("")}</ul>`
+      ? `<p class="muted">${esc(wie)} houdt <b>${mijn.length}</b> van de ${alle.length} records op de <a href="/statistieken/#records">records-muur</a>.</p>`
+        + `<ul class="rec-lijst">${mijn.map((r) => { const l = r.log; return `<li><span class="rec-groep">${esc(R.maatNaam(r))}<br>${naamGroep[r.groep]}</span>`
+        + `<span class="rec-tijd">${tijd(l.sec)}</span><span class="rec-wie">${R.mensen(l.makers)}`
+        + `<small class="muted">${esc(R.naam(l.a))}${l.datum ? ` · <span class="nw">sinds ${datum(l.datum)}</span>` : ""}</small></span></li>`; }).join("")}</ul>`
       : '<p class="muted">Nog geen record. Kijk op de <a href="/statistieken/#records">records-muur</a> welke tijden er te verbeteren zijn.</p>';
   }
 
   function snelst(eigen) {
-    const maten = [...new Set(eigen.filter((l) => l.sec != null && l.stukjes).map((l) => l.stukjes))].sort((x, y) => x - y);
+    const maten = [...new Map(eigen.filter((l) => l.sec != null && l.stukjes).map((l) => [l.maat, l])).values()].sort(R.opMaat);
     const beste = (ls) => ls.reduce((x, y) => (!x || y.sec < x.sec ? y : x), null);
     const cel = (l, metWie) => (l ? `${tijd(l.sec)}<small class="muted">${esc(R.naam(l.a))}${metWie ? ` · ${esc(l.makers.filter((m) => m !== wie).join(", "))}` : ""}</small>` : "–");
     $("p-snelst").innerHTML = maten.length ? `<thead><tr><th>Stukjes</th><th>Solo</th><th>Samen</th></tr></thead><tbody>`
-      + maten.map((s) => {
-        const ls = eigen.filter((l) => l.stukjes === s && l.sec != null);
-        return `<tr><td class="num">${getal(s)}</td><td>${cel(beste(ls.filter((l) => l.makers.length === 1)))}</td><td>${cel(beste(ls.filter((l) => l.makers.length > 1)), true)}</td></tr>`;
+      + maten.map((m) => {
+        const ls = eigen.filter((l) => l.maat === m.maat && l.sec != null);
+        return `<tr><td class="num">${esc(R.maatNaam(m))}</td><td>${cel(beste(ls.filter((l) => l.makers.length === 1)))}</td><td>${cel(beste(ls.filter((l) => l.makers.length > 1)), true)}</td></tr>`;
       }).join("") + "</tbody>" : '<tbody><tr><td class="muted">Nog geen tijden.</td></tr></tbody>';
   }
 

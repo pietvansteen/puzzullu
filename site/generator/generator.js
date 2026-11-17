@@ -134,7 +134,7 @@
       : "Deze versie hebben we nog nooit gelegd.";
     return `<h2 class="lot-titel">${esc(naam(a))}</h2>`
       + (a.nl && a.nl !== naam(a) ? `<p class="lot-nl">${esc(a.nl)}</p>` : "")
-      + `<p class="lot-doos"><b>${e.stukjes ? `${getal(e.stukjes)} stukjes` : "Onbekend aantal stukjes"}</b>, ${esc(wie)}${e.volgnummer > 1 ? ` (doos ${e.volgnummer})` : ""}</p>`
+      + `<p class="lot-doos"><b>${e.stukjes ? `${getal(e.stukjes)} stukjes` : "Onbekend aantal stukjes"}</b>${(a.expert || []).includes(e.stukjes) ? ' <span class="expert-tag">expert</span>' : ""}, ${esc(wie)}${e.volgnummer > 1 ? ` (doos ${e.volgnummer})` : ""}</p>`
       + (a.rating ? `<p class="sterren" aria-label="Moeilijkheid ${a.rating} van 5">${sterren(a.rating)} <span class="muted">moeilijkheid</span></p>` : "")
       + `<p class="muted">${esc(gelegd)}${mist ? ` ${esc(mist)}` : ""}</p>`;
   }
