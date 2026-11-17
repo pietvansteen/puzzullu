@@ -312,9 +312,25 @@
           : `<p>Je zat ${verschil(l.sec - n.sec)} van ${wat} (${tijd(n.sec)}).</p>`);
       }
     }
+    regels.push(...nieuweBadges(l));
     regels.push('<p class="muted">De site is over een halve minuut bijgewerkt.</p>');
     $("feest-tekst").innerHTML = regels.join("");
     $("feest").showModal();
+  }
+
+  // the badges (or higher ranks) this log brings, per maker, with a link to their page
+  function nieuweBadges(l) {
+    if (!window.PZB || !window.PZR) return [];
+    try {
+      const B = window.PZB, voor = window.PZR.voorbereiden(D), na = window.PZR.voorbereiden({ ...D, logs: [...D.logs, l] });
+      return B.nieuw(voor, na, l.makers).map(({ wie, nieuw }) => `<div class="feest-badge"><p>🎖️ ${nieuw.length === 1 ? "Nieuwe badge" : "Nieuwe badges"} voor <b>${esc(wie)}</b>: `
+        + nieuw.map((x) => `${esc(x.b.naam)}${x.b.grenzen.length > 1 ? ` (${B.RANGEN[x.rang - 1]})` : ""}`).join(", ")
+        + `</p><div class="feest-badges">${nieuw.map((x) => B.svg(x.b, x.rang, 52)).join("")}</div>`
+        + `<p><a href="/persoon/?naam=${encodeURIComponent(wie)}#badges">Bekijk de badges van ${esc(wie)}</a></p></div>`);
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
   }
 
   // ---------------------------------------------------------------- B. boxes

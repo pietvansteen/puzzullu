@@ -637,3 +637,33 @@ a.mens:hover, a.mens:focus-visible { color: var(--accent); text-decoration: unde
 .reeks-getal b { font: 600 2rem/1 var(--f-display); color: var(--accent); }
 .persoon .tabel td small { display: block; }
 #partners-meer { margin-top: 8px; }
+
+/* ---------- Badges (person page, the card, the log pop-up) ---------- */
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.badge { display: grid; justify-items: center; gap: 2px; width: 100%; height: 100%; padding: 10px 6px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; text-align: center; cursor: pointer; }
+.badge:hover, .badge:focus-visible { border-color: var(--accent); }
+.badge.nog { background: transparent; }
+.badge.nog .badge-naam { color: var(--muted); }
+.badge-svg { display: block; flex: none; }
+.badge-svg .v { fill: currentColor; stroke: none; }
+.badge-svg .t { font: 700 20px var(--f-display); fill: currentColor; stroke: none; text-anchor: middle; }
+.badge-naam { font: 600 .9rem/1.2 var(--f-display); -webkit-hyphens: auto; hyphens: auto; }
+.badge-rang { color: var(--muted); font-size: .78rem; line-height: 1.2; }
+.badge-balk { display: block; width: 70%; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
+.badge-balk i { display: block; height: 100%; border-radius: 2px; background: var(--accent); }
+.badge-balk.groot { width: 100%; height: 6px; margin: 0; }
+.badges-sub { margin: 22px 0 2px; font: 600 1.1rem var(--f-display); }
+.badges-leeg { grid-column: 1 / -1; }
+#feest-meer { margin-top: 8px; }
+.badge-kaart { width: min(92vw, 440px); }
+.badge-kaart h2 { margin: 0; }
+#bk-inhoud { display: grid; gap: 12px; margin-bottom: 16px; }
+#bk-inhoud p { margin: 0; }
+.bk-kop { display: flex; align-items: center; gap: 14px; }
+.bk-lijst { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.bk-lijst li { display: grid; grid-template-columns: 4.6em 1fr; column-gap: 10px; padding: 6px 10px; border-radius: 8px; background: var(--surface-2); color: var(--muted); }
+.bk-lijst li.ja { color: var(--ink); }
+.bk-rang { font-weight: 700; }
+.bk-wanneer { grid-column: 2; font-size: .85rem; }
+.feest-badge { display: grid; gap: 6px; }
+.feest-badges { display: flex; flex-wrap: wrap; gap: 6px; }

@@ -1,5 +1,5 @@
-/* Puzzullu — one person's page (/persoon/?naam=Hanna): totals, the week streak, the records they hold, their fastest
-   times, who they puzzle with, and when. Badges and the year overview come on top of this. Computed from data.json. */
+/* Puzzullu — one person's page (/persoon/?naam=Hanna): totals, the week streak, badges, the records they hold, their
+   fastest times, who they puzzle with, and when. The year overview comes on top of this. Computed from data.json. */
 (function () {
   "use strict";
 
@@ -83,6 +83,59 @@
     teken();
   }
 
+  // ---------------------------------------------------------------- badges
+
+  function badges(D) {
+    const B = window.PZB;
+    const alle = B.van(D, wie);
+    const opRang = (x, y) => y.rang - x.rang || B.ALLE.indexOf(x.b) - B.ALLE.indexOf(y.b);
+    const rang = alle.filter((x) => !x.b.feest).sort((x, y) => (y.rang > 0) - (x.rang > 0) || opRang(x, y));
+    const feest = alle.filter((x) => x.b.feest).sort((x, y) => (y.rang > 0) - (x.rang > 0) || B.ALLE.indexOf(x.b) - B.ALLE.indexOf(y.b));
+    const tegel = (x) => {
+      const max = x.rang >= x.b.grenzen.length;
+      const balk = x.b.grenzen.length > 1 && !max ? `<span class="badge-balk"><i style="width:${Math.round(B.voortgang(x) * 100)}%"></i></span>` : "";
+      return `<li><button type="button" class="badge${x.rang ? "" : " nog"}" data-id="${x.b.id}">${B.svg(x.b, x.rang)}`
+        + `<span class="badge-naam">${esc(x.b.naam)}</span><span class="badge-rang">${esc(B.rangNaam(x.b, x.rang))}</span>${balk}</button></li>`;
+    };
+    const behaald = alle.filter((x) => x.rang).length;
+    $("badges-kop").textContent = `${behaald} van de ${alle.length} badges behaald. Tik op een badge voor de uitleg.`;
+    $("b-rang").innerHTML = rang.map(tegel).join("");
+    let open = false;
+    const feestTeken = () => {
+      const gehaald = feest.filter((x) => x.rang);
+      $("b-feest").innerHTML = (open ? feest : gehaald).map(tegel).join("") || '<li class="muted badges-leeg">Nog geen feestdagbadge.</li>';
+      $("feest-meer").hidden = gehaald.length === feest.length;
+      $("feest-meer").textContent = open ? "Alleen behaalde tonen" : `Toon alle ${feest.length} feestdagbadges`;
+    };
+    $("feest-meer").addEventListener("click", () => { open = !open; feestTeken(); });
+    feestTeken();
+
+    // the card: explanation, the thresholds, and when each rank was reached
+    const kaart = (x) => {
+      const { b, rang, waarde, behaald: logs } = x;
+      const wanneer = (l) => (l ? `${l.datum ? datum(l.datum) : "datum onbekend"} · ${esc(R.naam(l.a))}` : "nu");
+      const rijen = b.grenzen.map((g, i) => {
+        const l = logs[i], gehaald = i < rang;
+        const label = b.grenzen.length > 1 ? B.RANGEN[i] : B.rangNaam(b, 1);
+        return `<li class="${gehaald ? "ja" : ""}"><span class="bk-rang">${esc(label)}</span><span class="bk-grens">${esc(B.grensTekst(b, g))}</span>`
+          + `<span class="bk-wanneer muted">${gehaald ? wanneer(l) : "nog niet"}</span></li>`;
+      }).join("");
+      const volgende = rang < b.grenzen.length
+        ? `<p>Nu: <b>${esc(B.waardeTekst(b, waarde))}</b>${b.minder && waarde !== Infinity ? " (beste tijd)" : ""}. Volgende: ${esc(b.grenzen.length > 1 ? B.RANGEN[rang] : b.naam)}, ${esc(B.grensTekst(b, b.grenzen[rang]))}.</p>`
+          + (b.grenzen.length > 1 ? `<span class="badge-balk groot"><i style="width:${Math.round(B.voortgang(x) * 100)}%"></i></span>` : "")
+        : `<p>Nu: <b>${esc(B.waardeTekst(b, waarde))}</b>${b.minder ? " (beste tijd)" : ""}. ${b.grenzen.length > 1 ? "Hoogste rang gehaald!" : ""}</p>`;
+      $("bk-inhoud").innerHTML = `<div class="bk-kop">${B.svg(b, rang, 104)}<div><h2 id="bk-naam">${esc(b.naam)}</h2><p class="muted">${esc(B.rangNaam(b, rang))}</p></div></div>`
+        + `<p>${B.uitleg(b, D)}</p>${volgende}<ul class="bk-lijst">${rijen}</ul>`;
+      $("badge-kaart").showModal();
+    };
+    $("badges").addEventListener("click", (ev) => {
+      const k = ev.target.closest(".badge[data-id]");
+      if (k) kaart(alle.find((x) => x.b.id === k.dataset.id));
+    });
+    // tap outside the card closes it
+    $("badge-kaart").addEventListener("click", (ev) => { if (ev.target === $("badge-kaart")) $("badge-kaart").close(); });
+  }
+
   data().then((d) => {
     const D = R.voorbereiden(d);
     const eigen = D.logs.filter((l) => l.makers.includes(wie));
@@ -94,10 +147,12 @@
     $("pagina").hidden = false;
     tegels(eigen, D);
     reeks(eigen);
+    badges(D);
     records(D);
     snelst(eigen);
     partners(eigen);
     R.kalender($("p-kalender"), eigen);
+    if (location.hash === "#badges") $("badges").scrollIntoView();
   }).catch((e) => {
     console.error(e);
     nietGevonden("De gegevens konden niet worden geladen. Probeer het over een paar minuten opnieuw.");

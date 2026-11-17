@@ -142,5 +142,5 @@
     teken();
   }
 
-  window.PZR = { voorbereiden, kalender, naam, records, GROEPEN, groep, mens, mensen, weekreeks, WEEK_STUKJES, weekNr };
+  window.PZR = { voorbereiden, kalender, naam, records, GROEPEN, groep, mens, mensen, weekreeks, WEEK_STUKJES, weekNr, dagNr };
 })();
