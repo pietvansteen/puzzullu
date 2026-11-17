@@ -235,6 +235,29 @@
   }
 
   // the last puzzles done: by date, and on the same date the one logged last first
+  // the record wall: per piece count the fastest time per group size; the most done piece counts first,
+  // the rest behind "Meer aantallen stukjes"
+  const REC_VAAK = 5; // timed logs a piece count needs to be shown at once
+  function records() {
+    const lijst = window.PZR.records(D);
+    const aantal = {};
+    for (const l of D.getimed) aantal[l.stukjes] = (aantal[l.stukjes] || 0) + 1;
+    const maten = [...new Set(lijst.map((r) => r.stukjes))];
+    const vaak = maten.filter((s) => aantal[s] >= REC_VAAK);
+    const naamGroep = Object.fromEntries(window.PZR.GROEPEN);
+    let alle = false;
+    const teken = () => {
+      $("records").innerHTML = (alle ? maten : vaak).map((s) => `<div class="rec-blok"><h3>${getal(s)} stukjes</h3><ul class="rec-lijst">`
+        + lijst.filter((r) => r.stukjes === s).map(({ groep, log: l }) => `<li><span class="rec-groep">${naamGroep[groep]}</span>`
+          + `<span class="rec-tijd">🏆 ${tijd(l.sec)}</span><span class="rec-wie">${window.PZR.mensen(l.makers)}`
+          + `<small class="muted">${esc(naam(l.a))}${l.datum ? ` · <span class="nw">sinds ${datum(l.datum)}</span>` : ""}</small></span></li>`).join("")
+        + "</ul></div>").join("")
+        + (maten.length > vaak.length ? `<button type="button" class="link-btn" id="rec-meer">${alle ? "Minder tonen" : `Meer aantallen stukjes (${maten.length - vaak.length})`}</button>` : "");
+    };
+    $("records").addEventListener("click", (ev) => { if (ev.target.id === "rec-meer") { alle = !alle; teken(); } });
+    teken();
+  }
+
   function laatst() {
     const nr = (l) => Number(String(l.id).replace(/\D/g, "")) || 0;
     const ls = D.logs.filter((l) => l.datum && l.a).sort((x, y) => y.datum.localeCompare(x.datum) || nr(y) - nr(x)).slice(0, LAATST);
@@ -572,6 +595,7 @@
     laatst();
     meldingen();
     window.PZR.kalender($("kalender"), D.logs);
+    records();
     perJaar();
     perPersoon();
     collectie();

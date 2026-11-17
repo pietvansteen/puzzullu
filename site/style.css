@@ -606,3 +606,16 @@ footer a { color: var(--muted); }
 .kal-legenda span:first-child { margin-right: 2px; }
 .kal-legenda span:last-child { margin-left: 2px; }
 .kal-detail { min-height: 1.5em; margin: 8px 0 0; font-size: .92rem; }
+
+/* ---------- Records ---------- */
+.rec-blok { margin: 14px 0 18px; }
+.rec-blok h3 { margin: 0 0 6px; }
+.rec-lijst { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.rec-lijst li { display: grid; grid-template-columns: 4.6em 5.6em minmax(0, 1fr); gap: 2px 10px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--line); }
+.rec-groep { color: var(--muted); font-size: .9rem; }
+.rec-tijd { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rec-tijd::first-letter { margin-right: 3px; }
+.nw { white-space: nowrap; }
+.rec-wie small { display: block; font-size: .8rem; }
+a.mens { color: inherit; text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+a.mens:hover { color: var(--accent); }

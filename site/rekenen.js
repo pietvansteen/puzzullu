@@ -24,6 +24,31 @@
     return { ...d, afb, ex, logs, getimed, dozen };
   }
 
+  // a name that links to that person's page
+  const mens = (m) => `<a class="mens" href="/persoon/?naam=${encodeURIComponent(m)}">${esc(m)}</a>`;
+  // "Hanna", "Hanna & Igor", "Hanna, Igor & Simon", every name a link
+  const mensen = (makers) => {
+    const ls = makers.map(mens);
+    return ls.length < 2 ? ls.join("") : `${ls.slice(0, -1).join(", ")} & ${ls[ls.length - 1]}`;
+  };
+
+  // ---------------------------------------------------------------- records
+  // the fastest time per piece count and group size (Solo, Duo, Drie, Team = 4, 5 of meer); a tie goes to the first
+
+  const GROEPEN = [[1, "Solo"], [2, "Duo"], [3, "Drie"], [4, "Team"], [5, "5 of meer"]];
+  const groep = (l) => Math.min(l.makers.length, 5);
+
+  function records(D) {
+    const beste = new Map();
+    for (const l of D.getimed) {
+      const k = `${l.stukjes}|${groep(l)}`;
+      const r = beste.get(k);
+      if (!r || l.sec < r.sec || (l.sec === r.sec && (l.datum || "9") < (r.datum || "9"))) beste.set(k, l);
+    }
+    return [...beste].map(([k, l]) => ({ stukjes: l.stukjes, groep: groep(l), log: l }))
+      .sort((x, y) => x.stukjes - y.stukjes || x.groep - y.groep);
+  }
+
   // ---------------------------------------------------------------- calendar heatmap
   // One year: a row per month, a square per day (1-31); the more puzzles that day, the yellower.
   // Year chips on top (the last 4, older ones behind "Meer"); tapping a day shows its puzzles below.
@@ -91,5 +116,5 @@
     teken();
   }
 
-  window.PZR = { voorbereiden, kalender, naam };
+  window.PZR = { voorbereiden, kalender, naam, records, GROEPEN, groep, mens, mensen };
 })();
