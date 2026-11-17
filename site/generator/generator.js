@@ -158,6 +158,8 @@
       $("uitslag").innerHTML = kaart(e);
       $("uitslag").classList.remove("schud");
       $("wie-legt").hidden = !e.stukjes;
+      // nobody chosen yet: start with the names of "nog niet gemaakt door", they will probably do it
+      if (!st.wie.length && st.niet.length) { st.wie = [...st.niet]; bewaar(); }
       tekenWie();
       if (admin.get()) {
         $("naar-loggen").href = `/loggen/?doos=${encodeURIComponent(e.id)}`;
@@ -190,8 +192,8 @@
       + (rest ? `<button type="button" class="chip meer" data-meer>${st.alleWie ? "Minder namen" : `Meer namen (${rest})`}</button>` : "");
     const e = vorige, p = $("g-voorspelling");
     const v = e && st.wie.length && window.PZR ? window.PZR.voorspel(PD, e.afbeelding, e.stukjes, st.wie) : null;
-    p.hidden = !st.wie.length;
-    p.innerHTML = v ? `<span>🔮 ${st.wie.length === 1 ? esc(st.wie[0]) : "Jullie"} ${st.wie.length === 1 ? "doet" : "doen"} er ${window.PZR.voorspelTekst(v)} over.</span>`
+    p.hidden = false;
+    p.innerHTML = !st.wie.length ? '<span class="muted">Tik hierboven op wie hem gaat leggen, dan zie je hoe lang dat ongeveer duurt.</span>' : v ? `<span>🔮 ${st.wie.length === 1 ? esc(st.wie[0]) : "Jullie"} ${st.wie.length === 1 ? "doet" : "doen"} er ${window.PZR.voorspelTekst(v)} over.</span>`
       + `<small class="muted">${window.PZR.voorspelUitleg(v, st.wie, e.stukjes)}</small>`
       : `<span class="muted">Nog geen tijden met ${st.wie.length} ${st.wie.length === 1 ? "persoon" : "mensen"} op ${e ? e.stukjes : ""} stukjes, dus geen voorspelling.</span>`;
   }

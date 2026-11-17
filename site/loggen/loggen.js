@@ -155,7 +155,12 @@
   function voorspelling() {
     laatsteVoorspelling = null;
     const wie = makers.gekozen();
-    if (!window.PZR || !tijdDoos || !wie.length) { $("voorspelling").hidden = true; return; }
+    if (!window.PZR || !tijdDoos || !wie.length) {
+      // once a box is chosen: a hint that the people give the prediction
+      $("voorspelling").hidden = !tijdAfb;
+      $("voorspelling").innerHTML = `<span class="muted">🔮 Kies ${!tijdDoos ? "de doos" : ""}${!tijdDoos && !wie.length ? " en " : ""}${!wie.length ? "wie hem gelegd heeft" : ""}, dan zie je de voorspelde tijd.</span>`;
+      return;
+    }
     PD = PD || window.PZR.voorbereiden(D);
     const v = window.PZR.voorspel(PD, tijdDoos.afbeelding, tijdDoos.stukjes, wie);
     $("voorspelling").hidden = !v;
@@ -172,7 +177,7 @@
   function kiesPuzzel(a) {
     tijdAfb = a;
     tijdDoos = null;
-    $("voorspelling").hidden = true;
+    voorspelling();
     const exs = exVan(a.id).filter((e) => !e.weg).sort((x, y) => (x.stukjes || 0) - (y.stukjes || 0));
     $("tijd-doos").hidden = false;
     $("tijd-dozen").innerHTML = exs.length
