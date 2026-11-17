@@ -667,3 +667,14 @@ a.mens:hover, a.mens:focus-visible { color: var(--accent); text-decoration: unde
 .bk-wanneer { grid-column: 2; font-size: .85rem; }
 .feest-badge { display: grid; gap: 6px; }
 .feest-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---------- Year overview (person page) ---------- */
+#jaar .tiles { margin-top: 4px; }
+.jaarfeiten { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.jaarfeiten li { display: grid; align-content: start; gap: 2px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+@media (min-width: 640px) { .jaarfeiten { grid-template-columns: 1fr 1fr; } }
+.jaar-badges-kop { margin: 18px 0 8px; }
+.jaar-badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.jaar-badges li { display: flex; align-items: center; gap: 8px; }
+.jaar-badges span { display: grid; font: 600 .92rem/1.2 var(--f-display); }
+.jaar-badges small { font: 400 .8rem var(--f-body); }

@@ -1,5 +1,5 @@
 /* Puzzullu — one person's page (/persoon/?naam=Hanna): totals, the week streak, badges, the records they hold, their
-   fastest times, who they puzzle with, and when. The year overview comes on top of this. Computed from data.json. */
+   fastest times, who they puzzle with, and when. the year overview, and a heatmap. Computed from data.json. */
 (function () {
   "use strict";
 
@@ -83,11 +83,97 @@
     teken();
   }
 
+  // ---------------------------------------------------------------- year overview
+  // one year at a time (chips: the last 4 years, older ones behind "Meer"), the newest year first
+
+  const MAANDEN = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
+  const JAREN = 4;
+
+  function jaaroverzicht(eigen, D, badgeLijst) {
+    const opVolgorde = window.PZB.opVolgorde(eigen);
+    const jaren = [...new Set(eigen.filter((l) => l.datum).map((l) => l.datum.slice(0, 4)))].sort().reverse();
+    if (!jaren.length) { $("jaar").hidden = true; return; }
+    let jaar = jaren[0], oud = false;
+
+    const feit = (kop, tekst) => (tekst ? `<li><span class="feitje-kop">${esc(kop)}</span><span>${tekst}</span></li>` : "");
+    const teken = () => {
+      const toon = oud ? jaren : jaren.slice(0, JAREN);
+      $("j-jaren").innerHTML = `<div class="chips jaren${oud ? " open" : ""}" role="group" aria-label="Jaar">`
+        + toon.map((j) => `<button type="button" class="chip" data-jaar="${j}" aria-pressed="${j === jaar}">${j}</button>`).join("")
+        + (jaren.length > JAREN ? `<button type="button" class="chip meer" data-meer aria-expanded="${oud}">${oud ? "Minder ▴" : "Meer ▾"}</button>` : "") + "</div>";
+
+      const ls = opVolgorde.filter((l) => l.datum && l.datum.startsWith(jaar));
+      const vorig = eigen.filter((l) => l.datum && l.datum.startsWith(String(jaar - 1))).length;
+      const sec = som(ls.map((l) => l.sec || 0));
+      $("j-tiles").innerHTML = [[ls.length, ls.length === 1 ? "puzzel" : "puzzels"], [som(ls.map((l) => l.gelegd)), "stukjes"],
+        [Math.round(sec / 3600), "uur"], [ls.filter((l) => l.makers.length === 1).length, "solo"]]
+        .map(([n, label]) => `<li class="tile"><b>${esc(getal(n))}</b><span>${esc(label)}</span></li>`).join("");
+
+      // the busiest month
+      const perMaand = new Array(12).fill(0);
+      for (const l of ls) perMaand[+l.datum.slice(5, 7) - 1] += 1;
+      const top = Math.max(...perMaand), maand = perMaand.indexOf(top);
+      // the fastest: most pieces per minute, puzzles of 500 pieces or more with a time
+      const snel = ls.filter((l) => l.sec && l.stukjes >= 500).sort((x, y) => y.stukjes / y.sec - x.stukjes / x.sec)[0];
+      // the favourite partner
+      const p = new Map();
+      for (const l of ls) for (const m of l.makers) if (m !== wie) p.set(m, (p.get(m) || 0) + 1);
+      const partner = [...p].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0], "nl"))[0];
+      // the biggest improvement: a time this year against the best earlier time on the same version with the same group
+      let beter = null;
+      const beste = new Map();
+      for (const l of opVolgorde) {
+        if (l.sec == null || !l.stukjes) continue;
+        const k = `${l.versie}#${l.team}`, b = beste.get(k);
+        if (b != null && l.datum && l.datum.startsWith(jaar) && l.sec < b && (!beter || b - l.sec > beter.winst)) beter = { l, winst: b - l.sec, oud: b };
+        if (b == null || l.sec < b) beste.set(k, l.sec);
+      }
+      // the longest run of days, and of weeks with enough pieces, within this year
+      const dagen = [...new Set(ls.map((l) => R.dagNr(l.datum)))].sort((x, y) => x - y);
+      let run = 0, dagreeks = 0;
+      dagen.forEach((d, i) => { run = i && d === dagen[i - 1] + 1 ? run + 1 : 1; dagreeks = Math.max(dagreeks, run); });
+      const weekreeks = R.weekreeks(ls).langste;
+
+      const met = (l) => (l.makers.length > 1 ? `, met ${R.mensen(l.makers.filter((m) => m !== wie))}` : ", solo");
+      $("j-feiten").innerHTML = [
+        vorig ? feit("Tegen het jaar ervoor", `${ls.length >= vorig ? `${getal(ls.length - vorig)} meer` : `${getal(vorig - ls.length)} minder`} dan in ${jaar - 1} (${getal(vorig)})`) : "",
+        top ? feit("Drukste maand", `${MAANDEN[maand]}, met ${top} ${top === 1 ? "puzzel" : "puzzels"}`) : "",
+        snel ? feit("Snelste puzzel", `<i>${esc(R.naam(snel.a))}</i>, ${getal(snel.stukjes)} stukjes in ${tijd(snel.sec)}${met(snel)} (${(snel.stukjes / (snel.sec / 60)).toFixed(1).replace(".", ",")} stukjes per minuut)`) : "",
+        partner ? feit("Favoriete puzzelpartner", `${R.mens(partner[0])}, ${partner[1]} ${partner[1] === 1 ? "puzzel" : "puzzels"} samen`) : "",
+        beter ? feit("Grootste verbetering", `<i>${esc(R.naam(beter.l.a))}</i> (${getal(beter.l.stukjes)})${met(beter.l)}: ${tijd(beter.l.sec)}, ${esc(verschil(beter.winst))} sneller dan de beste tijd ervoor (${tijd(beter.oud)})`) : "",
+        dagreeks > 1 ? feit("Langste dagreeks", `${dagreeks} dagen op rij gepuzzeld`) : "",
+        weekreeks ? feit("Langste weekreeks", `${weekreeks} ${weekreeks === 1 ? "week" : "weken"} op rij minstens ${getal(R.WEEK_STUKJES)} stukjes`) : "",
+      ].join("");
+
+      // the badges (and ranks) reached this year
+      const B = window.PZB;
+      const nieuw = [];
+      for (const x of badgeLijst) x.behaald.forEach((l, i) => { if (l && l.datum && l.datum.startsWith(jaar)) nieuw.push({ b: x.b, rang: i + 1, l }); });
+      nieuw.sort((x, y) => x.l.datum.localeCompare(y.l.datum) || x.l.id.localeCompare(y.l.id));
+      $("j-badges").innerHTML = nieuw.length ? `<p class="feitje-kop jaar-badges-kop">${nieuw.length} nieuwe ${nieuw.length === 1 ? "badge" : "badges en rangen"} in ${jaar}</p>`
+        + `<ul class="jaar-badges">${nieuw.map(({ b, rang, l }) => `<li title="${esc(b.naam)} (${esc(B.rangNaam(b, rang))}), ${datum(l.datum)}">${B.svg(b, rang, 44)}<span>${esc(b.naam)}<small class="muted">${esc(b.grenzen.length > 1 ? B.RANGEN[rang - 1] : B.rangNaam(b, rang))} · ${datum(l.datum)}</small></span></li>`).join("")}</ul>`
+        : `<p class="muted">Geen nieuwe badges in ${jaar}.</p>`;
+    };
+
+    $("j-jaren").addEventListener("click", (ev) => {
+      if (ev.target.closest("[data-meer]")) { oud = !oud; return teken(); }
+      const c = ev.target.closest("[data-jaar]");
+      if (c) { jaar = c.dataset.jaar; teken(); }
+    });
+    teken();
+  }
+
+  function verschil(sec) {
+    const u = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = sec % 60;
+    if (u) return `${u} uur${m ? ` en ${m} ${m === 1 ? "minuut" : "minuten"}` : ""}`;
+    if (m) return `${m} ${m === 1 ? "minuut" : "minuten"}${m < 5 && s ? ` en ${s} seconden` : ""}`;
+    return `${s} seconden`;
+  }
+
   // ---------------------------------------------------------------- badges
 
-  function badges(D) {
+  function badges(D, alle) {
     const B = window.PZB;
-    const alle = B.van(D, wie);
     const opRang = (x, y) => y.rang - x.rang || B.ALLE.indexOf(x.b) - B.ALLE.indexOf(y.b);
     const rang = alle.filter((x) => !x.b.feest).sort((x, y) => (y.rang > 0) - (x.rang > 0) || opRang(x, y));
     const feest = alle.filter((x) => x.b.feest).sort((x, y) => (y.rang > 0) - (x.rang > 0) || B.ALLE.indexOf(x.b) - B.ALLE.indexOf(y.b));
@@ -147,7 +233,9 @@
     $("pagina").hidden = false;
     tegels(eigen, D);
     reeks(eigen);
-    badges(D);
+    const lijst = window.PZB.van(D, wie);
+    jaaroverzicht(eigen, D, lijst);
+    badges(D, lijst);
     records(D);
     snelst(eigen);
     partners(eigen);
