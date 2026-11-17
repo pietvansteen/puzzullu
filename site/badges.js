@@ -174,7 +174,7 @@
       maak: (ctx) => verschillend((l) => l.makers.filter((m) => m !== ctx.wie))() },
     { id: "grotegroep", naam: "Grote groep", glyph: "vijf", uitleg: "Leg een puzzel met 5 mensen of meer.",
       grenzen: [1, 3, 5, 10, 20], tekst: telwoord("keer", "keer"), maak: telt((l) => l.makers.length >= 5) },
-    { id: "verbeteraar", naam: "Verbeteraar", glyph: "pijl", uitleg: "Leg een puzzel opnieuw met dezelfde groep, minstens 10 minuten sneller dan de eerste keer. Elke puzzel telt één keer.",
+    { id: "verbeteraar", naam: "Verbeteraar", glyph: "pijl", uitleg: "Leg een puzzel opnieuw met precies dezelfde mensen (of weer alleen), minstens 10 minuten sneller dan de eerste keer. Elke puzzel telt één keer.",
       grenzen: [1, 3, 8, 15, 30], tekst: telwoord("puzzel", "puzzels"),
       maak: () => {
         const eerste = new Map(), beter = new Set();
@@ -215,9 +215,11 @@
   const SPECIAAL = [
     { id: "bliksem", naam: "Bliksem", glyph: "bliksem", uitleg: "Leg een puzzel van 500 stukjes (geen expertpuzzel) in je eentje binnen 40 minuten.",
       grenzen: [1], speciaal: true, tekst: telwoord("keer", "keer"), maak: telt((l) => solo(l) && l.stukjes === 500 && !l.expert && l.sec != null && l.sec < u(0, 40)) },
-    { id: "eerste", naam: "Eerste stukje", glyph: "stukjeSter", uitleg: "Je eerste puzzel bij Puzzullu.",
-      grenzen: [1], speciaal: true, tekst: telwoord("puzzel", "puzzels"), maak: telt(() => true) },
-    { id: "seconde", naam: "Op de seconde", glyph: "roos", uitleg: "Leg een puzzel opnieuw met dezelfde groep, en zit hooguit 10 seconden van de vorige tijd af.",
+    // the oldest puzzle with a date (as "Puzzelt mee sinds" on the person page); only without any date the first log
+    { id: "eerste", naam: "Eerste stukje", glyph: "stukjeSter", uitleg: "Je eerste puzzel bij Puzzullu: de oudste die we met datum kennen.",
+      grenzen: [1], speciaal: true, geenStand: true, tekst: telwoord("puzzel", "puzzels"),
+      maak: (ctx) => { const metDatum = ctx.eigen.some((l) => l.datum); let n = 0; return (l) => (n = Math.min(1, n + (!metDatum || l.datum ? 1 : 0))); } },
+    { id: "seconde", naam: "Op de seconde", glyph: "roos", uitleg: "Leg een puzzel opnieuw met precies dezelfde mensen (of weer alleen), en zit hooguit 10 seconden van de vorige tijd af.",
       grenzen: [1], speciaal: true, tekst: telwoord("keer", "keer"),
       maak: () => {
         const vorige = new Map();
@@ -263,8 +265,8 @@
 
   // D from PZR.voorbereiden; gives every badge with its number, rank (0 = not yet) and the log of each rank reached
   function van(D, wie, ctx0) {
-    const ctx = { D, wie, nk: (ctx0 && ctx0.nk) || nkTijden(D) };
     const eigen = opVolgorde(D.logs.filter((l) => l.makers.includes(wie)));
+    const ctx = { D, wie, eigen, nk: (ctx0 && ctx0.nk) || nkTijden(D) };
     return ALLE.map((b) => {
       const behaald = [];
       let waarde = b.minder ? Infinity : 0;

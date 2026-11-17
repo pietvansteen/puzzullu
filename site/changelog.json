@@ -1,4 +1,12 @@
 [
+ {"version": "2.0.1",
+  "date": "2026-11-18",
+  "changes": [
+  "De voorspelling is makkelijker te vinden: in de generator staat onder Wie legt hem? wat je moet doen, en wie je bij Nog niet gemaakt door koos, staat er meteen al. Bij Loggen staat wat er nog nodig is voor de voorspelling.",
+  "De badge Eerste stukje hoort nu bij je oudste puzzel met een datum, net als Puzzelt mee sinds bovenaan je pagina.",
+  "De uitleg bij Op de seconde en Verbeteraar zegt nu dat het ook solo telt: met precies dezelfde mensen, of weer alleen.",
+  "Bij Snelste tijden op je eigen pagina staat het aantal stukjes links, zoals de rest."
+ ]},
  {"version": "2.0.0",
   "date": "2026-11-18",
   "changes": [

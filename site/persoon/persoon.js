@@ -59,7 +59,7 @@
     $("p-snelst").innerHTML = maten.length ? `<thead><tr><th>Stukjes</th><th>Solo</th><th>Samen</th></tr></thead><tbody>`
       + maten.map((m) => {
         const ls = eigen.filter((l) => l.maat === m.maat && l.sec != null);
-        return `<tr><td class="num">${esc(R.maatNaam(m))}</td><td>${cel(beste(ls.filter((l) => l.makers.length === 1)))}</td><td>${cel(beste(ls.filter((l) => l.makers.length > 1)), true)}</td></tr>`;
+        return `<tr><td>${esc(R.maatNaam(m))}</td><td>${cel(beste(ls.filter((l) => l.makers.length === 1)))}</td><td>${cel(beste(ls.filter((l) => l.makers.length > 1)), true)}</td></tr>`;
       }).join("") + "</tbody>" : '<tbody><tr><td class="muted">Nog geen tijden.</td></tr></tbody>';
   }
 
@@ -208,7 +208,7 @@
         return `<li class="${gehaald ? "ja" : ""}"><span class="bk-rang">${esc(label)}</span><span class="bk-grens">${esc(B.grensTekst(b, g))}</span>`
           + `<span class="bk-wanneer muted">${gehaald ? wanneer(l) : "nog niet"}</span></li>`;
       }).join("");
-      const volgende = rang < b.grenzen.length
+      const volgende = b.geenStand ? "" : rang < b.grenzen.length
         ? `<p>Nu: <b>${esc(B.waardeTekst(b, waarde))}</b>${b.minder && waarde !== Infinity ? " (beste tijd)" : ""}. Volgende: ${esc(b.grenzen.length > 1 ? B.RANGEN[rang] : b.naam)}, ${esc(B.grensTekst(b, b.grenzen[rang]))}.</p>`
           + (b.grenzen.length > 1 ? `<span class="badge-balk groot"><i style="width:${Math.round(B.voortgang(x) * 100)}%"></i></span>` : "")
         : `<p>Nu: <b>${esc(B.waardeTekst(b, waarde))}</b>${b.minder ? " (beste tijd)" : ""}. ${b.grenzen.length > 1 ? "Hoogste rang gehaald!" : ""}</p>`;
