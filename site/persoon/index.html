@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0f1f3f">
+<style>html { background: #0f1f3f; color-scheme: dark; }</style>
+<title>Puzzelaar · Puzzullu</title>
+<meta name="description" content="Alles van één Puzzullu-puzzelaar: puzzels, records, badges en weekreeks.">
+<link rel="icon" href="/logo.svg?v=1.6.0-017aec" type="image/svg+xml">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Puzzullu">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="/style.css?v=1.6.0-017aec">
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="/" aria-label="Puzzullu, overzicht">
+    <img src="/logo.svg?v=1.6.0-017aec" width="44" height="44" alt="">
+    <span>Puzzullu</span>
+  </a>
+  <nav class="nav" aria-label="Pagina's">
+    <a href="/">Overzicht</a>
+    <a href="/statistieken/" aria-current="page">Statistieken</a>
+    <a href="/generator/">Generator</a>
+  </nav>
+</header>
+
+<main class="wrap stats persoon">
+  <p class="terug"><a href="/statistieken/#mensen">← Alle mensen</a></p>
+  <section class="hero">
+    <h1 id="naam">Laden…</h1>
+    <p id="sinds"></p>
+  </section>
+  <div id="pagina" hidden>
+    <ul class="tiles" id="tiles"></ul>
+
+    <section class="card reeks" id="reeks" aria-live="polite"></section>
+
+    <section class="blok" id="blok-records">
+      <h2>Records</h2>
+      <div id="p-records"></div>
+    </section>
+
+    <section class="blok">
+      <h2>Snelste tijden</h2>
+      <p class="muted">Per aantal stukjes de snelste keer solo, en de snelste keer samen met anderen.</p>
+      <div class="tabel-wrap"><table class="tabel" id="p-snelst"></table></div>
+    </section>
+
+    <section class="blok">
+      <h2>Puzzelpartners</h2>
+      <div class="tabel-wrap"><table class="tabel" id="p-partners"></table></div>
+      <button type="button" class="link-btn" id="partners-meer" hidden></button>
+    </section>
+
+    <section class="blok">
+      <h2 id="kal-kop">Wanneer puzzelt deze persoon?</h2>
+      <div class="kalender" id="p-kalender"></div>
+    </section>
+  </div>
+  <p class="muted" id="niet-gevonden" hidden></p>
+</main>
+
+<footer class="wrap"><span>Puzzullu</span> <a class="version" href="/wat-is-nieuw/">v1.6.0 · Wat is nieuw</a></footer>
+<script src="/shared.js?v=1.6.0-017aec"></script>
+<script src="/rekenen.js?v=1.6.0-017aec"></script>
+<script src="/persoon/persoon.js?v=1.6.0-017aec"></script>
+</body>
+</html>

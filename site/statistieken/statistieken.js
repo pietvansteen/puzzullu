@@ -183,7 +183,7 @@
         }
       }
       return Object.entries(p).sort((x, y) => y[1].n - x[1].n || y[1].stukjes - x[1].stukjes || x[0].localeCompare(y[0], "nl"))
-        .map(([m, x]) => [esc(m), getal(x.n), getal(x.solo), getal(x.stukjes), `${getal(Math.round(x.sec / 3600))} u`]);
+        .map(([m, x]) => [window.PZR.mens(m), getal(x.n), getal(x.solo), getal(x.stukjes), `${getal(Math.round(x.sec / 3600))} u`]);
     };
     // the top PERSONEN, the rest behind "Toon alle"; the last JAREN years, older ones behind "Meer jaren"
     let alle = false;
@@ -258,12 +258,35 @@
     teken();
   }
 
+  // the Mensen tab: a card per person who did a puzzle, linking to their page (the top ones first)
+  const KAARTJES = 8;
+  function kaartjes() {
+    const per = new Map();
+    for (const l of D.logs) for (const m of l.makers) {
+      if (!per.has(m)) per.set(m, []);
+      per.get(m).push(l);
+    }
+    const lijst = [...per].map(([m, ls]) => ({ m, n: ls.length, w: window.PZR.weekreeks(ls) }))
+      .sort((x, y) => y.n - x.n || x.m.localeCompare(y.m, "nl"));
+    let alle = false;
+    const teken = () => {
+      $("kaartjes").innerHTML = (alle ? lijst : lijst.slice(0, KAARTJES)).map(({ m, n, w }) =>
+        `<li><a class="kaartje" href="/persoon/?naam=${encodeURIComponent(m)}"><b>${esc(m)}</b>`
+        + `<span class="muted">${getal(n)} ${n === 1 ? "puzzel" : "puzzels"}</span>`
+        + (w.huidig ? `<span class="vlam" title="Weekreeks: ${w.huidig} ${w.huidig === 1 ? "week" : "weken"} op rij">🔥 ${w.huidig}</span>` : "") + "</a></li>").join("");
+      $("kaartjes-meer").hidden = lijst.length <= KAARTJES;
+      $("kaartjes-meer").textContent = alle ? "Minder tonen" : `Alle puzzelaars (${lijst.length})`;
+    };
+    $("kaartjes-meer").addEventListener("click", () => { alle = !alle; teken(); });
+    teken();
+  }
+
   function laatst() {
     const nr = (l) => Number(String(l.id).replace(/\D/g, "")) || 0;
     const ls = D.logs.filter((l) => l.datum && l.a).sort((x, y) => y.datum.localeCompare(x.datum) || nr(y) - nr(x)).slice(0, LAATST);
     const rijen = ls.map((l) => [
       `${esc(naam(l.a))}<small class="muted">${l.stukjes ? `${getal(l.stukjes)} stukjes` : "onbekend aantal stukjes"}</small>`,
-      esc(wie(l.makers)), l.sec != null ? tijd(l.sec) : '<span class="muted">geen tijd</span>', datum(l.datum)]);
+      window.PZR.mensen(l.makers), l.sec != null ? tijd(l.sec) : '<span class="muted">geen tijd</span>', datum(l.datum)]);
     let alle = false;
     const teken = () => {
       $("laatst").innerHTML = tabel(["Puzzel", "Wie", "Tijd", "Datum"], alle ? rijen : rijen.slice(0, LAATST_KORT), "", [0, 1]);
@@ -551,7 +574,7 @@
       $("nk").innerHTML = rijen.length ? tabel(["Puzzel", "Winnaar", "Wij", "Verschil"], rijen.map(({ n, best }) => {
         const v = best.sec - n.sec;
         return [`${esc(nkNaam(n))}<small class="muted">NK ${n.jaar}, ${esc(n.ronde)}, ${esc(n.categorie)}</small>`,
-          tijd(n.sec), `${tijd(best.sec)}<small class="muted">${esc(wie(best.makers))}</small>${best.datum ? `<small class="muted">${datum(best.datum)}</small>` : ""}`,
+          tijd(n.sec), `${tijd(best.sec)}<small class="muted">${window.PZR.mensen(best.makers)}</small>${best.datum ? `<small class="muted">${datum(best.datum)}</small>` : ""}`,
           `<span class="${v < 0 ? "plus" : "min"}">${v < 0 ? "−" : "+"}${tijd(Math.abs(v))}</span>`];
       })) : "";
       $("nk-nog-kop").textContent = `NK-puzzels die we nog niet zo gelegd hebben (${q ? `${rest.length} van ${nog.length}` : nog.length})`;
@@ -597,6 +620,7 @@
     window.PZR.kalender($("kalender"), D.logs);
     records();
     perJaar();
+    kaartjes();
     perPersoon();
     collectie();
     meest();

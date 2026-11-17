@@ -49,6 +49,32 @@
       .sort((x, y) => x.stukjes - y.stukjes || x.groep - y.groep);
   }
 
+  // ---------------------------------------------------------------- week streak
+  // A week (Monday to Sunday) counts when at least WEEK_STUKJES pieces were laid in it. The current streak still
+  // runs while this week is not over yet; it breaks only after a Sunday without enough pieces.
+
+  const WEEK_STUKJES = 1000;
+  const dagNr = (iso) => Math.floor(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / 864e5);
+  const weekNr = (iso) => Math.floor((dagNr(iso) + 3) / 7); // 1-1-1970 was a Thursday: weeks start on Monday
+  const vandaagIso = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+
+  function weekreeks(logs, vandaag = vandaagIso()) {
+    const perWeek = new Map();
+    for (const l of logs) if (l.datum) perWeek.set(weekNr(l.datum), (perWeek.get(weekNr(l.datum)) || 0) + l.gelegd);
+    const goed = [...perWeek].filter(([, n]) => n >= WEEK_STUKJES).map(([w]) => w).sort((x, y) => x - y);
+    let langste = 0, reeks = 0, eind = null;
+    goed.forEach((w, i) => {
+      reeks = i && w - goed[i - 1] === 1 ? reeks + 1 : 1;
+      if (reeks > langste) { langste = reeks; eind = w; }
+    });
+    const deze = weekNr(vandaag), set = new Set(goed);
+    let huidig = 0;
+    for (let w = set.has(deze) ? deze : deze - 1; set.has(w); w -= 1) huidig += 1;
+    const dezeWeek = perWeek.get(deze) || 0;
+    return { langste, huidig, dezeWeek, nodig: Math.max(0, WEEK_STUKJES - dezeWeek), gehaald: set.has(deze),
+      langsteTot: eind == null ? null : new Date((eind * 7 + 3) * 864e5).toISOString().slice(0, 10) };
+  }
+
   // ---------------------------------------------------------------- calendar heatmap
   // One year: a row per month, a square per day (1-31); the more puzzles that day, the yellower.
   // Year chips on top (the last 4, older ones behind "Meer"); tapping a day shows its puzzles below.
@@ -116,5 +142,5 @@
     teken();
   }
 
-  window.PZR = { voorbereiden, kalender, naam, records, GROEPEN, groep, mens, mensen };
+  window.PZR = { voorbereiden, kalender, naam, records, GROEPEN, groep, mens, mensen, weekreeks, WEEK_STUKJES, weekNr };
 })();

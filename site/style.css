@@ -619,3 +619,20 @@ footer a { color: var(--muted); }
 .rec-wie small { display: block; font-size: .8rem; }
 a.mens { color: inherit; text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
 a.mens:hover { color: var(--accent); }
+
+/* ---------- People: cards on the statistics, the person page ---------- */
+.kaartjes { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.kaartje { display: grid; gap: 2px; height: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; }
+.kaartje:hover, .kaartje:focus-visible { border-color: var(--accent); }
+.kaartje b { font: 600 1.1rem/1.2 var(--f-display); }
+.kaartje .vlam { font-size: .9rem; }
+#kaartjes-meer { margin-top: 8px; }
+.terug { margin: 4px 0 0; }
+.terug a { color: var(--muted); text-decoration: none; }
+.terug a:hover { color: var(--accent); }
+.persoon .hero { padding-top: 6px; }
+.reeks { gap: 6px; margin-top: 18px; }
+.reeks-getal { font-size: 1.15rem; }
+.reeks-getal b { font: 600 2rem/1 var(--f-display); color: var(--accent); }
+.persoon .tabel td small { display: block; }
+#partners-meer { margin-top: 8px; }
