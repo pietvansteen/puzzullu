@@ -337,7 +337,7 @@
     if (l.sec != null && v && v.doos === l.exemplaar && v.team === l.makers.join("|")) {
       const d = l.sec - v.sec;
       regels.push(Math.abs(d) < 60 ? `<p>🔮 Precies zoals voorspeld (${tijd(v.sec)})!</p>`
-        : `<p>🔮 ${verschil(Math.abs(d))} ${d < 0 ? "sneller" : "langzamer"} dan voorspeld (${tijd(v.sec)})${l.sec < v.van ? ", knap!" : ""}.</p>`);
+        : `<p>🔮 ${verschil(Math.abs(d))} ${d < 0 ? "sneller" : "langzamer"} dan voorspeld (${tijd(v.sec)})${l.sec < v.van ? ". Knap!" : "."}</p>`);
     }
     regels.push(...nieuweBadges(l));
     regels.push('<p class="muted">De site is over een halve minuut bijgewerkt.</p>');

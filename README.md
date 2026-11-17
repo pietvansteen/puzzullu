@@ -12,7 +12,7 @@ Google Sheet ──(dagelijks, of meteen)──> sync ──> data/data.json ─
 
 | Map | Wat |
 |---|---|
-| `site/` | De website: `index.html` + `overzicht.js` (overzicht), `wat-is-nieuw/` (release notes), `shared.js`, `style.css`, `logo.svg`. Later ook `statistieken/`, `generator/` en `loggen/` |
+| `site/` | De website: `index.html` + `overzicht.js` (overzicht), `statistieken/` (in tabbladen, met records-muur en kalender), `persoon/` (eigen pagina per puzzelaar: weekreeks, jaaroverzicht, badges), `generator/`, `loggen/`, `wat-is-nieuw/` (release notes), `shared.js`, `rekenen.js` (gedeelde berekeningen en de voorspelling), `badges.js`, `style.css`, `logo.svg` |
 | `sync/sync.py` | Haalt de tabbladen van de Sheet op als CSV en schrijft `data/data.json` |
 | `sync/jvh.py` | Haalt één keer per dag de JvH-catalogus op (alle afbeeldingen en alle uitgaves) uit het digitaal museum van jvh-puzzels.nl |
 | `tools/migratie.py` | Eenmalig (gedaan op 28-10-2026): zette de oude tabbladen om naar de nieuwe, met een rapport om eerst te controleren |
@@ -62,7 +62,7 @@ De site gebruikt de bestaande tunnel van funkyorbit.nl; Puzzullu heeft geen eige
 
 De pagina `/loggen/` staat niet in het menu voor bezoekers. Je logt één keer in met het wachtwoord uit `ADMIN_TOKEN` (`.env`); daarna onthoudt dat apparaat het en staat **Loggen 🔒** in het menu. Daar kun je:
 
-- **Tijd loggen**: puzzel en doos kiezen, wie, de tijd, de datum, compleet of niet, gefilmd. Daarna zie je of het een record is, en hoe de tijd zich verhoudt tot de winnaar van het NK (alleen als het aantal mensen klopt: solo 1, duo 2, team 4).
+- **Tijd loggen**: puzzel en doos kiezen, wie, de tijd, de datum, compleet of niet, gefilmd. Zodra puzzel en mensen gekozen zijn, staat er een voorspelling van de tijd. Daarna zie je of het een record is, hoe de tijd zich verhoudt tot de voorspelling en tot de winnaar van het NK (alleen als het aantal mensen klopt: solo 1, duo 2, team 4), en welke nieuwe badges er gehaald zijn.
 - **Dozen**: een doos toevoegen (heeft dezelfde eigenaar die versie al, dan wordt het doos 2), missende stukjes aanpassen of een doos weghalen. Een weggehaalde doos blijft in de Sheet met status `weg`, zodat de tijden blijven bestaan.
 - **Video's**: een YouTube-link toevoegen bij gefilmde puzzels.
 - **Rating**: de moeilijkheid (1–5) van een puzzel. Dat kan ook rechtstreeks in de Sheet, in tabblad Afbeeldingen, kolom `rating`.
