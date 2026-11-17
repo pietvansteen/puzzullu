@@ -14,11 +14,11 @@
   const MAAT_KEY = "pz-stats-stukjes";
   const VAAK_MIN = 3;      // timed logs a version needs to be "vaak gelegd"
   const VAAK_TOON = 10;
-  const PERSONEN = 8;
+  const PERSONEN = 8;      // people shown before "Toon alle"
   const JAREN = 4;         // years shown before "Meer jaren"
   const JAAR_KEY = "pz-stats-jaar"; // the year chosen at "Per persoon" ("" = all years)
   const LAATST = 5;        // last puzzles done
-  const LAATST_KORT = 2;   // of which shown before "Toon nog"      // people shown before "Toon alle"
+  const LAATST_KORT = 2;   // of which shown before "Toon nog"
   const NK_GROOTTE = { solo: 1, duo: 2, team: 4 };
   const MAANDEN = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
   const DAGEN = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
@@ -52,19 +52,7 @@
   }
   const getal1 = (n) => n.toLocaleString("nl-NL", { maximumFractionDigits: 1 });
 
-  function voorbereiden(d) {
-    const afb = Object.fromEntries(d.afbeeldingen.map((a) => [a.id, a]));
-    const ex = Object.fromEntries(d.exemplaren.map((e) => [e.id, e]));
-    const logs = d.logs.map((l) => {
-      const e = ex[l.exemplaar] || {};
-      const stukjes = e.stukjes || 0;
-      return { ...l, e, a: afb[e.afbeelding], stukjes, versie: `${e.afbeelding}|${stukjes}`, team: l.makers.join("|"),
-        gelegd: Math.max(0, stukjes - (typeof l.missend === "number" ? l.missend : 0)) };
-    });
-    const getimed = logs.filter((l) => l.sec != null && l.stukjes);
-    const dozen = d.exemplaren.filter((e) => !e.weg);
-    return { ...d, afb, ex, logs, getimed, dozen };
-  }
+  const voorbereiden = window.PZR.voorbereiden;
 
   // ---------------------------------------------------------------- tiles, facts
 
@@ -555,6 +543,26 @@
     teken();
   }
 
+  // ---------------------------------------------------------------- tabs: Algemeen, Records, Mensen, Vergelijken, NK & collectie
+  // the tab is in the address (#records) so it can be linked to; the last one is remembered on this device
+
+  const TAB_KEY = "pz-stats-tab";
+  const knoppen = [...document.querySelectorAll(".stat-tabs [role=tab]")];
+  function kiesTab(tab, bewaren = true) {
+    if (!knoppen.some((b) => b.dataset.tab === tab)) tab = "algemeen";
+    for (const b of knoppen) b.setAttribute("aria-selected", String(b.dataset.tab === tab));
+    for (const p of document.querySelectorAll(".stats > .paneel")) p.hidden = p.id !== `tab-${tab}`;
+    if (bewaren) {
+      try { localStorage.setItem(TAB_KEY, tab); } catch (e) { /* private window */ }
+      history.replaceState(null, "", `#${tab}`);
+    }
+  }
+  for (const b of knoppen) b.addEventListener("click", () => kiesTab(b.dataset.tab));
+  window.addEventListener("hashchange", () => kiesTab(location.hash.slice(1), false));
+  let eersteTab = location.hash.slice(1);
+  if (!eersteTab) try { eersteTab = localStorage.getItem(TAB_KEY) || ""; } catch (e) { /* private window */ }
+  kiesTab(eersteTab, false);
+
   // ---------------------------------------------------------------- start
 
   data().then((d) => {
@@ -563,6 +571,7 @@
     feitjes();
     laatst();
     meldingen();
+    window.PZR.kalender($("kalender"), D.logs);
     perJaar();
     perPersoon();
     collectie();

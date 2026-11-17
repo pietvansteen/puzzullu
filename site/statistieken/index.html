@@ -8,7 +8,7 @@
 <style>html { background: #0f1f3f; color-scheme: dark; }</style>
 <title>Statistieken · Puzzullu</title>
 <meta name="description" content="Statistieken van Puzzullu: hoeveel puzzels we hebben en gelegd hebben, wie het snelst is en hoe we het doen tegen het NK.">
-<link rel="icon" href="/logo.svg?v=1.6.0-c4661d" type="image/svg+xml">
+<link rel="icon" href="/logo.svg?v=1.6.0-46f180" type="image/svg+xml">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Puzzullu">
@@ -18,12 +18,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="/style.css?v=1.6.0-c4661d">
+<link rel="stylesheet" href="/style.css?v=1.6.0-46f180">
 </head>
 <body>
 <header class="wrap top">
   <a class="brand" href="/" aria-label="Puzzullu, overzicht">
-    <img src="/logo.svg?v=1.6.0-c4661d" width="44" height="44" alt="">
+    <img src="/logo.svg?v=1.6.0-46f180" width="44" height="44" alt="">
     <span>Puzzullu</span>
   </a>
   <nav class="nav" aria-label="Pagina's">
@@ -38,89 +38,127 @@
     <h1>Statistieken</h1>
     <p>Alles wat we hebben en gelegd hebben, in getallen. Wie is het snelst, worden we beter, en hoe doen we het tegen het NK?</p>
   </section>
-  <ul class="tiles" id="tiles" aria-live="polite"><li class="empty">Laden…</li></ul>
+  <div class="tabs stat-tabs" role="tablist" aria-label="Onderdelen">
+    <button type="button" role="tab" id="knop-algemeen" data-tab="algemeen" aria-controls="tab-algemeen" aria-selected="true">Algemeen</button>
+    <button type="button" role="tab" id="knop-records" data-tab="records" aria-controls="tab-records" aria-selected="false">Records</button>
+    <button type="button" role="tab" id="knop-mensen" data-tab="mensen" aria-controls="tab-mensen" aria-selected="false">Mensen</button>
+    <button type="button" role="tab" id="knop-vergelijken" data-tab="vergelijken" aria-controls="tab-vergelijken" aria-selected="false">Vergelijken</button>
+    <button type="button" role="tab" id="knop-nk" data-tab="nk" aria-controls="tab-nk" aria-selected="false">NK &amp; meer</button>
+  </div>
 
-  <section class="card feitje" aria-live="polite">
-    <p class="feitje-kop">Wist je dat…</p>
-    <p class="feitje-tekst" id="feitje"></p>
-    <button type="button" class="knop klein dobbel" id="nog-feitje"><span class="dobbelsteen" aria-hidden="true">🎲</span> Nog een feitje</button>
-  </section>
+  <div class="paneel" id="tab-algemeen" role="tabpanel" aria-labelledby="knop-algemeen">
+    <ul class="tiles" id="tiles" aria-live="polite"><li class="empty">Laden…</li></ul>
 
-  <section class="blok">
-    <div class="kop-rij">
-      <h2>Laatst gemaakt</h2>
-      <button type="button" class="bel" id="bel" aria-controls="meldingen" aria-expanded="false" title="Meldingen" hidden>🔔</button>
-    </div>
-    <div class="tabel-wrap"><table class="tabel" id="laatst"></table></div>
-    <button type="button" class="link-btn" id="laatst-meer" hidden></button>
-    <div class="meldingen" id="meldingen" hidden>
-      <button type="button" class="sluit" id="meld-sluit" aria-label="Sluiten" title="Sluiten">×</button>
-      <p><b>🔔 Up-to-date blijven?</b> <span id="meld-tekst"></span></p>
-      <button type="button" class="knop klein" id="meld-knop" hidden></button>
-      <p class="fout" id="meld-fout" role="alert"></p>
-    </div>
-  </section>
 
-  <section class="blok">
-    <h2>Gelegd per jaar</h2>
-    <div class="balken" id="per-jaar"></div>
-  </section>
+    <section class="card feitje" aria-live="polite">
+      <p class="feitje-kop">Wist je dat…</p>
+      <p class="feitje-tekst" id="feitje"></p>
+      <button type="button" class="knop klein dobbel" id="nog-feitje"><span class="dobbelsteen" aria-hidden="true">🎲</span> Nog een feitje</button>
+    </section>
 
-  <section class="blok">
-    <h2>Per persoon</h2>
-    <p class="muted">Een puzzel telt voor iedereen die meedeed. Puzzeltijd is de tijd waarin iemand meepuzzelde.</p>
-    <div class="chips jaren" id="persoon-jaar" role="group" aria-label="Jaar"></div>
-    <div class="tabel-wrap"><table class="tabel" id="per-persoon"></table></div>
-    <button type="button" class="link-btn" id="persoon-meer" hidden></button>
-  </section>
 
-  <section class="blok">
-    <h2>De collectie</h2>
-    <div class="twee">
-      <div><h3>Per eigenaar</h3><div class="tabel-wrap"><table class="tabel" id="per-eigenaar"></table></div>
-        <p class="muted klein">Een doos van twee mensen telt bij allebei, en in het totaal één keer.</p></div>
-      <div><h3>Per aantal stukjes</h3><div class="tabel-wrap"><table class="tabel" id="per-stukjes"></table></div></div>
-    </div>
-  </section>
+    <section class="blok">
+      <div class="kop-rij">
+        <h2>Laatst gemaakt</h2>
+        <button type="button" class="bel" id="bel" aria-controls="meldingen" aria-expanded="false" title="Meldingen" hidden>🔔</button>
+      </div>
+      <div class="tabel-wrap"><table class="tabel" id="laatst"></table></div>
+      <button type="button" class="link-btn" id="laatst-meer" hidden></button>
+      <div class="meldingen" id="meldingen" hidden>
+        <button type="button" class="sluit" id="meld-sluit" aria-label="Sluiten" title="Sluiten">×</button>
+        <p><b>🔔 Up-to-date blijven?</b> <span id="meld-tekst"></span></p>
+        <button type="button" class="knop klein" id="meld-knop" hidden></button>
+        <p class="fout" id="meld-fout" role="alert"></p>
+      </div>
+    </section>
 
-  <section class="blok">
-    <h2>Meest gelegd</h2>
-    <ol class="toplijst" id="meest"></ol>
-    <p class="muted" id="videos"></p>
-  </section>
 
-  <section class="blok">
-    <h2>Vergelijken</h2>
-    <label class="select">Kies een persoon of team
-      <select id="team"></select>
-    </label>
-    <p class="muted klein">Een team is precies dezelfde groep mensen. Alleen tijden met evenveel mensen worden vergeleken.</p>
-    <div id="progressie"></div>
-    <div id="tegen"></div>
-  </section>
+    <section class="blok">
+      <h2>Wanneer puzzelen we?</h2>
+      <div class="kalender" id="kalender"></div>
+    </section>
 
-  <section class="blok">
-    <h2>Vaak gelegd</h2>
-    <p class="muted">Versies (zelfde puzzel, zelfde aantal stukjes) die we minstens 3 keer met tijd gelegd hebben.</p>
-    <ul class="vaak" id="vaak"></ul>
-    <button type="button" class="link-btn" id="vaak-meer" hidden></button>
-  </section>
+    <section class="blok">
+      <h2>Gelegd per jaar</h2>
+      <div class="balken" id="per-jaar"></div>
+    </section>
 
-  <section class="blok">
-    <h2>Tegen het NK</h2>
-    <p class="muted">Onze snelste tijd op puzzels van het Nederlands Kampioenschap, tegen de winnaar. Alleen met evenveel mensen als de categorie (solo 1, duo 2, team 4) en met evenveel stukjes.</p>
-    <p id="nk-kop"></p>
-    <input type="search" id="nk-zoek" class="zoekbalk" placeholder="Zoek een NK-puzzel op naam" aria-label="Zoek een NK-puzzel op naam" autocomplete="off">
-    <p class="muted" id="nk-geen" role="status"></p>
-    <div class="tabel-wrap"><table class="tabel" id="nk"></table></div>
-    <details class="nk-nog" id="nk-nog-blok"><summary id="nk-nog-kop"></summary><ul id="nk-nog"></ul></details>
-  </section>
+  </div>
+
+  <div class="paneel" id="tab-records" role="tabpanel" aria-labelledby="knop-records" hidden>
+    <section class="blok">
+      <h2>Records</h2>
+      <div id="records"></div>
+    </section>
+
+    <section class="blok">
+      <h2>Vaak gelegd</h2>
+      <p class="muted">Versies (zelfde puzzel, zelfde aantal stukjes) die we minstens 3 keer met tijd gelegd hebben.</p>
+      <ul class="vaak" id="vaak"></ul>
+      <button type="button" class="link-btn" id="vaak-meer" hidden></button>
+    </section>
+
+  </div>
+
+  <div class="paneel" id="tab-mensen" role="tabpanel" aria-labelledby="knop-mensen" hidden>
+    <section class="blok">
+      <h2>Per persoon</h2>
+      <p class="muted">Een puzzel telt voor iedereen die meedeed. Puzzeltijd is de tijd waarin iemand meepuzzelde.</p>
+      <div class="chips jaren" id="persoon-jaar" role="group" aria-label="Jaar"></div>
+      <div class="tabel-wrap"><table class="tabel" id="per-persoon"></table></div>
+      <button type="button" class="link-btn" id="persoon-meer" hidden></button>
+    </section>
+
+  </div>
+
+  <div class="paneel" id="tab-vergelijken" role="tabpanel" aria-labelledby="knop-vergelijken" hidden>
+    <section class="blok">
+      <h2>Vergelijken</h2>
+      <label class="select">Kies een persoon of team
+        <select id="team"></select>
+      </label>
+      <p class="muted klein">Een team is precies dezelfde groep mensen. Alleen tijden met evenveel mensen worden vergeleken.</p>
+      <div id="progressie"></div>
+      <div id="tegen"></div>
+    </section>
+
+  </div>
+
+  <div class="paneel" id="tab-nk" role="tabpanel" aria-labelledby="knop-nk" hidden>
+    <section class="blok">
+      <h2>Tegen het NK</h2>
+      <p class="muted">Onze snelste tijd op puzzels van het Nederlands Kampioenschap, tegen de winnaar. Alleen met evenveel mensen als de categorie (solo 1, duo 2, team 4) en met evenveel stukjes.</p>
+      <p id="nk-kop"></p>
+      <input type="search" id="nk-zoek" class="zoekbalk" placeholder="Zoek een NK-puzzel op naam" aria-label="Zoek een NK-puzzel op naam" autocomplete="off">
+      <p class="muted" id="nk-geen" role="status"></p>
+      <div class="tabel-wrap"><table class="tabel" id="nk"></table></div>
+      <details class="nk-nog" id="nk-nog-blok"><summary id="nk-nog-kop"></summary><ul id="nk-nog"></ul></details>
+    </section>
+
+    <section class="blok">
+      <h2>De collectie</h2>
+      <div class="twee">
+        <div><h3>Per eigenaar</h3><div class="tabel-wrap"><table class="tabel" id="per-eigenaar"></table></div>
+          <p class="muted klein">Een doos van twee mensen telt bij allebei, en in het totaal één keer.</p></div>
+        <div><h3>Per aantal stukjes</h3><div class="tabel-wrap"><table class="tabel" id="per-stukjes"></table></div></div>
+      </div>
+    </section>
+
+
+    <section class="blok">
+      <h2>Meest gelegd</h2>
+      <ol class="toplijst" id="meest"></ol>
+      <p class="muted" id="videos"></p>
+    </section>
+
+  </div>
 
   <p class="muted" id="updated"></p>
 </main>
 
 <footer class="wrap"><span>Puzzullu</span> <a class="version" href="/wat-is-nieuw/">v1.6.0 · Wat is nieuw</a></footer>
-<script src="/shared.js?v=1.6.0-c4661d"></script>
-<script src="/statistieken/statistieken.js?v=1.6.0-c4661d"></script>
+<script src="/shared.js?v=1.6.0-46f180"></script>
+<script src="/rekenen.js?v=1.6.0-46f180"></script>
+<script src="/statistieken/statistieken.js?v=1.6.0-46f180"></script>
 </body>
 </html>
