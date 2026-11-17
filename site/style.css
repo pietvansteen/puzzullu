@@ -678,3 +678,10 @@ a.mens:hover, a.mens:focus-visible { color: var(--accent); text-decoration: unde
 .jaar-badges li { display: flex; align-items: center; gap: 8px; }
 .jaar-badges span { display: grid; font: 600 .92rem/1.2 var(--f-display); }
 .jaar-badges small { font: 400 .8rem var(--f-body); }
+
+/* ---------- Prediction (Loggen, generator) ---------- */
+.voorspelling { display: grid; gap: 2px; margin: 0; padding: 10px 14px; border: 1px dashed var(--line); border-radius: 12px; }
+.voorspelling small { font-size: .82rem; }
+.wie-legt { display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.wie-legt .feitje-kop { margin: 0; }
+.wie-legt .feitje-kop .muted { font: 400 .85rem var(--f-body); }

@@ -1,5 +1,6 @@
 /* Puzzullu — the generator (/generator/): picks one random box we own, filtered on owner, pieces, difficulty and
-   "nog niet gemaakt door" (per version: none of those people ever did this picture with this piece count).
+   "nog niet gemaakt door" (per version: none of those people ever did this picture with this piece count); then
+   "Wie legt hem?" gives the predicted time for the chosen people.
    Filters are remembered per device (localStorage). */
 (function () {
   "use strict";
@@ -8,13 +9,14 @@
   const $ = (id) => document.getElementById(id);
   const VAAK = 5; // as on the overview: names with more than 5 logs first, the rest behind "Meer namen"
   const OPSLAG = "pz-generator-v1";
-  const standaard = { eigenaren: [], stukjes: [], moeilijk: [], niet: [], samen: true, alleNamen: false };
+  const standaard = { eigenaren: [], stukjes: [], moeilijk: [], niet: [], samen: true, alleNamen: false, wie: [], alleWie: false };
 
   let st = { ...standaard };
   try { st = { ...standaard, ...JSON.parse(localStorage.getItem(OPSLAG) || "{}") }; } catch (e) { /* private window */ }
   const bewaar = () => { try { localStorage.setItem(OPSLAG, JSON.stringify(st)); } catch (e) { /* ignore */ } };
 
   let D = null;
+  let PD = null; // data.json made ready by rekenen.js, for the prediction
   let vorige = null; // the box shown now, so "Nog een keer" picks another one
 
   const versie = (afb, stukjes) => `${afb}|${stukjes}`;
@@ -144,10 +146,13 @@
     const e = keus[Math.floor(Math.random() * keus.length)];
     vorige = e;
     $("kies").textContent = "Nog een keer";
+    $("wie-legt").hidden = true;
     $("naar-loggen").hidden = true;
     const klaar = () => {
       $("uitslag").innerHTML = kaart(e);
       $("uitslag").classList.remove("schud");
+      $("wie-legt").hidden = !e.stukjes;
+      tekenWie();
       if (admin.get()) {
         $("naar-loggen").href = `/loggen/?doos=${encodeURIComponent(e.id)}`;
         $("naar-loggen").hidden = false;
@@ -170,12 +175,38 @@
 
   $("kies").addEventListener("click", trek);
 
+  // ---------------------------------------------------------------- who does it: the predicted time
+
+  function tekenWie() {
+    const vaak = D.makers.filter((m) => D.keer[m] > VAAK || st.wie.includes(m));
+    const rest = D.makers.length - vaak.length;
+    $("wie-chips").innerHTML = (st.alleWie ? D.makers : vaak).map((m) => `<button type="button" class="chip" data-v="${esc(m)}" aria-pressed="${st.wie.includes(m)}">${esc(m)}</button>`).join("")
+      + (rest ? `<button type="button" class="chip meer" data-meer>${st.alleWie ? "Minder namen" : `Meer namen (${rest})`}</button>` : "");
+    const e = vorige, p = $("g-voorspelling");
+    const v = e && st.wie.length && window.PZR ? window.PZR.voorspel(PD, e.afbeelding, e.stukjes, st.wie) : null;
+    p.hidden = !st.wie.length;
+    p.innerHTML = v ? `<span>🔮 ${st.wie.length === 1 ? esc(st.wie[0]) : "Jullie"} ${st.wie.length === 1 ? "doet" : "doen"} er ${window.PZR.voorspelTekst(v)} over.</span>`
+      + `<small class="muted">${window.PZR.voorspelUitleg(v, st.wie, e.stukjes)}</small>`
+      : `<span class="muted">Nog geen tijden met ${st.wie.length} ${st.wie.length === 1 ? "persoon" : "mensen"} op ${e ? e.stukjes : ""} stukjes, dus geen voorspelling.</span>`;
+  }
+
+  $("wie-chips").addEventListener("click", (ev) => {
+    const b = ev.target.closest(".chip");
+    if (!b) return;
+    if (b.dataset.meer != null) st.alleWie = !st.alleWie;
+    else st.wie = st.wie.includes(b.dataset.v) ? st.wie.filter((x) => x !== b.dataset.v) : [...st.wie, b.dataset.v];
+    bewaar();
+    tekenWie();
+  });
+
   data().then((d) => {
     D = voorbereiden(d);
+    if (window.PZR) PD = window.PZR.voorbereiden(d);
     // drop remembered choices that no longer exist
     st.eigenaren = st.eigenaren.filter((v) => D.eigenaren.includes(v));
     st.stukjes = st.stukjes.filter((v) => D.stukjes.includes(v));
     st.niet = st.niet.filter((v) => D.makers.includes(v));
+    st.wie = st.wie.filter((v) => D.makers.includes(v));
     tekenFilters();
     telling();
     $("uitslag").innerHTML = `<p class="muted">Kies je filters, of druk meteen op de knop.</p>`;

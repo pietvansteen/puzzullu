@@ -3,7 +3,7 @@
 (function () {
   "use strict";
 
-  const { esc, datum } = window.PZ;
+  const { esc, datum, getal } = window.PZ;
   const MAAND = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
   const DAG = ["zo", "ma", "di", "wo", "do", "vr", "za"];
 
@@ -75,6 +75,74 @@
       langsteTot: eind == null ? null : new Date((eind * 7 + 3) * 864e5).toISOString().slice(0, 10) };
   }
 
+  // ---------------------------------------------------------------- prediction
+  // How long will these people take on this puzzle? From the times of exactly this team on this piece count,
+  // weighted towards their most recent ones (a Gaussian bell, VOORSPEL_DAGEN wide), corrected for difficulty:
+  // per rating, how much slower or faster puzzles of that rating are than average (from all logs). With fewer than
+  // 3 such times: all teams of the same size on this piece count, the makers' own teams counting 3 times as much
+  // ("voorzichtige schatting"). The range is 1.3 times the spread of those times (at least 10% either way), so about two out of three times land in it.
+
+  const VOORSPEL_DAGEN = 60; // tested on all our earlier times: half of them within 10% of the prediction
+
+  function ratingFactoren(D) {
+    if (D._rating) return D._rating;
+    const groep = new Map(), per = new Map();
+    for (const l of D.getimed) {
+      const k = `${l.stukjes}|${groep_(l)}`;
+      if (!groep.has(k)) groep.set(k, []);
+      groep.get(k).push(Math.log(l.sec));
+    }
+    const gem = (xs) => xs.reduce((n, x) => n + x, 0) / xs.length;
+    const basis = new Map([...groep].map(([k, xs]) => [k, gem(xs)]));
+    for (const l of D.getimed) {
+      const r = (l.a && l.a.rating) || 0;
+      if (!per.has(r)) per.set(r, []);
+      per.get(r).push(Math.log(l.sec) - basis.get(`${l.stukjes}|${groep_(l)}`));
+    }
+    D._rating = new Map([...per].map(([r, xs]) => [r, xs.length >= 5 ? gem(xs) : 0]));
+    return D._rating;
+  }
+  const groep_ = (l) => Math.min(l.makers.length, 5);
+
+  // makers: sorted names; returns {sec, van, tot, n, voorzichtig} or null
+  function voorspel(D, afbeelding, stukjes, makers) {
+    if (!stukjes || !makers.length) return null;
+    const f = ratingFactoren(D), r = (a) => f.get((a && a.rating) || 0) || 0;
+    const team = [...makers].sort((x, y) => x.localeCompare(y, "nl")).join("|");
+    const metDatum = D.getimed.filter((l) => l.datum && l.stukjes === stukjes);
+    let ls = metDatum.filter((l) => l.makers.join("|") === team), voorzichtig = false;
+    if (ls.length < 3) {
+      ls = metDatum.filter((l) => l.makers.length === makers.length);
+      voorzichtig = true;
+    }
+    if (!ls.length) return null;
+    const nieuwst = Math.max(...ls.map((l) => dagNr(l.datum)));
+    const ws = ls.map((l) => Math.exp(-0.5 * ((nieuwst - dagNr(l.datum)) / VOORSPEL_DAGEN) ** 2)
+      * (voorzichtig && l.makers.some((m) => makers.includes(m)) ? 3 : 1));
+    const vs = ls.map((l) => Math.log(l.sec) - r(l.a));
+    const som = ws.reduce((n, w) => n + w, 0);
+    const m = ws.reduce((n, w, i) => n + w * vs[i], 0) / som;
+    const sd = 1.3 * Math.max(0.08, Math.sqrt(ws.reduce((n, w, i) => n + w * (vs[i] - m) ** 2, 0) / som));
+    const doel = m + r(D.afb[afbeelding]);
+    const rond = (x) => Math.round(x / 60) * 60;
+    return { sec: rond(Math.exp(doel)), van: rond(Math.exp(doel - sd)), tot: rond(Math.exp(doel + sd)), n: ls.length, voorzichtig };
+  }
+
+  // "ongeveer 1:05 uur (tussen 0:58 en 1:12)", or "ongeveer 33 minuten (tussen 30 en 36)" under an hour
+  function voorspelTekst(v) {
+    const uur = v.tot >= 3600;
+    const kort = (s) => (uur ? `${Math.floor(s / 3600)}:${String(Math.round(s / 60) % 60).padStart(2, "0")}` : `${Math.round(s / 60)}`);
+    return `ongeveer <b>${kort(v.sec)} ${uur ? "uur" : "minuten"}</b> <span class="muted">(tussen ${kort(v.van)} en ${kort(v.tot)})</span>`;
+  }
+
+  // one line on how the prediction was made
+  function voorspelUitleg(v, makers, stukjes) {
+    const wie = makers.length === 1 ? makers[0] : "deze groep";
+    return v.voorzichtig
+      ? `Voorzichtige schatting: ${esc(wie)} ${makers.length === 1 ? "heeft" : "heeft samen"} nog geen 3 tijden op ${getal(stukjes)} stukjes, dus gerekend met ${makers.length === 1 ? "alle solotijden" : `alle groepen van ${makers.length}`} (eigen tijden tellen zwaarder).`
+      : `Gerekend met ${v.n} tijden van ${esc(wie)}${makers.length === 1 ? " solo" : ""} op ${getal(stukjes)} stukjes (de recente tellen het zwaarst) en de moeilijkheid van de puzzel.`;
+  }
+
   // ---------------------------------------------------------------- calendar heatmap
   // One year: a row per month, a square per day (1-31); the more puzzles that day, the yellower.
   // Year chips on top (the last 4, older ones behind "Meer"); tapping a day shows its puzzles below.
@@ -142,5 +210,5 @@
     teken();
   }
 
-  window.PZR = { voorbereiden, kalender, naam, records, GROEPEN, groep, mens, mensen, weekreeks, WEEK_STUKJES, weekNr, dagNr };
+  window.PZR = { voorbereiden, kalender, naam, records, GROEPEN, groep, mens, mensen, weekreeks, WEEK_STUKJES, weekNr, dagNr, voorspel, voorspelTekst, voorspelUitleg };
 })();
