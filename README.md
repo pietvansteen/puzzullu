@@ -14,6 +14,7 @@ Google Sheet ──(dagelijks, of meteen)──> sync ──> data/data.json ─
 |---|---|
 | `site/` | De website: `index.html` + `overzicht.js` (overzicht), `statistieken/` (in tabbladen, met records-muur en kalender), `persoon/` (eigen pagina per puzzelaar: weekreeks, jaaroverzicht, badges), `generator/`, `loggen/`, `wat-is-nieuw/` (release notes), `shared.js`, `rekenen.js` (gedeelde berekeningen en de voorspelling), `badges.js`, `style.css`, `logo.svg` |
 | `sync/sync.py` | Haalt de tabbladen van de Sheet op als CSV en schrijft `data/data.json` |
+| `sync/nk.py` | Leest één keer per dag de uitslagen van afgelopen NK-wedstrijden op nklegpuzzelen.nl, en zet nieuwe winnende tijden in het tabblad NK-tijden (via de Apps Script) |
 | `sync/jvh.py` | Haalt één keer per dag de JvH-catalogus op (alle afbeeldingen en alle uitgaves) uit het digitaal museum van jvh-puzzels.nl |
 | `tools/migratie.py` | Eenmalig (gedaan op 28-10-2026): zette de oude tabbladen om naar de nieuwe, met een rapport om eerst te controleren |
 | `api/api.py` | Kleine API achter het wachtwoord: tijden loggen, dozen, video-links en ratings opslaan via de Apps Script, en de Sheet nu ophalen |
@@ -31,7 +32,7 @@ Er zijn geen pip-pakketten nodig: alles draait op standaard Python.
 - **Afbeeldingen**: elke puzzelplaat één keer, met Engelse en Nederlandse naam, tekenaar, jaar, moeilijkheid (rating 1–5) en de link naar jvh-puzzels.nl.
 - **Exemplaren**: elke doos: welke afbeelding, hoeveel stukjes, van wie (één of meer eigenaren), hoeveel stukjes er missen en of hij weg is.
 - **Logs**: elke keer dat we een doos gelegd hebben: tijd, datum, wie, compleet, gefilmd en video-link.
-- **NK-tijden**: de winnende tijden van het NK, voor de vergelijking na het loggen.
+- **NK-tijden**: de winnende tijden van het NK, voor de vergelijking na het loggen. Nieuwe uitslagen zet de sync er zelf in.
 - **Personen**: alle namen, voor de keuzelijsten.
 
 Hun gid's staan in `docker-compose.yml`. De oude tabbladen (*Puzzel Collectie 2.0*, *Alle uitgaves JvH*, *Voorronde/finale tijden*) zijn op 28-10-2026 overgezet met `tools/migratie.py` en worden niet meer gelezen.
@@ -77,7 +78,7 @@ Opslaan gaat via een Apps Script in de Sheet. Eenmalig instellen:
 
 Na een wijziging in `Puzzullu.gs`: *Implementeren > Implementaties beheren*, bewerken, *Nieuwe versie*; de URL blijft hetzelfde.
 
-Met de Apps Script voegt de sync ook nieuwe puzzels van de JvH-site toe aan het tabblad Afbeeldingen.
+Met de Apps Script voegt de sync ook nieuwe puzzels van de JvH-site toe aan het tabblad Afbeeldingen, en nieuwe NK-uitslagen van nklegpuzzelen.nl aan het tabblad NK-tijden (één keer per dag; nooit dubbel, ook niet als de puzzel in de Sheet een andere naam heeft).
 
 ## Meldingen
 

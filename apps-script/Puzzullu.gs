@@ -1,5 +1,5 @@
 /*
- * Puzzullu: writes to the tabs Afbeeldingen, Exemplaren, Logs and Personen of "Jan van Haasteren Puzzel Collectie 3.0".
+ * Puzzullu: writes to the tabs Afbeeldingen, Exemplaren, Logs, NK-tijden and Personen of "Jan van Haasteren Puzzel Collectie 3.0".
  * Called by the API (api/api.py, from the password page /loggen/); it is a web app bound to the Sheet.
  *
  * Setup (once), see the README:
@@ -20,6 +20,9 @@
  *   setVideoUrl       log_id, video_url                         -> also gefilmd "ja"
  *   setRating         afbeelding_id, rating 1..5 | null
  *   addAfbeeldingen   afbeeldingen [{afbeelding_id, titel_en, titel_nl, tekenaar, jaar, bron, jvh_url}]  -> {ok, added}
+ *   addNkTijden       rijen [{puzzel, jaar, tijd "u:mm:ss", categorie "Team"|"Duo"|"Solo", ronde "Voorronde"|"Finale",
+ *                     afbeelding_id, stukjes}] (from the sync, read on nklegpuzzelen.nl)  -> {ok, added}
+ *                     a row that is already there (same puzzle or same time, in that year, category and round) is skipped
  * Answer: {"ok": true, ...} or {"error": "..."}
  *
  * Columns are found by their name in row 1, so the order of the columns in the Sheet does not matter.
@@ -43,7 +46,8 @@ function doPost(e) {
   if (seen) return pzAnswer(JSON.parse(seen));
 
   const actions = { addLog: pzAddLog, addExemplaar: pzAddExemplaar, removeExemplaar: pzRemoveExemplaar,
-    setMissing: pzSetMissing, setVideoUrl: pzSetVideoUrl, setRating: pzSetRating, addAfbeeldingen: pzAddAfbeeldingen };
+    setMissing: pzSetMissing, setVideoUrl: pzSetVideoUrl, setRating: pzSetRating, addAfbeeldingen: pzAddAfbeeldingen,
+    addNkTijden: pzAddNkTijden };
   const action = actions[body.action];
   if (!action) return pzAnswer({ error: "unknown action " + body.action });
 
@@ -171,6 +175,38 @@ function pzAddAfbeeldingen(b) {
       jaar: a.jaar || "", rating: "", bron: a.bron || "", jvh_url: a.jvh_url || "", opmerking: "",
     }, {});
     have.add(a.afbeelding_id);
+    added++;
+  });
+  return { ok: true, added: added };
+}
+
+// NK-tijden has no ID column: a row is there already when the same puzzle (picture id, or the name) or the same
+// winning time is in it for that year, category and round. Columns: Gemaakte puzzel, Jaartal, Tijd 1e plek,
+// "Team, duo, solo", "Voorronde, finale", afbeelding_id, stukjes.
+function pzAddNkTijden(b) {
+  const nk = pzTab("NK-tijden");
+  const k = (puzzel, jaar, cat, ronde) => [String(puzzel).trim().toLowerCase(), String(jaar).trim(),
+    String(cat).trim().toLowerCase(), String(ronde).trim().toLowerCase()].join("|");
+  const sec = (t) => String(t).trim().split(":").reduce((n, x) => n * 60 + Number(x), 0);
+  const have = new Set();
+  pzRows(nk).forEach((r) => {
+    const rest = [r["jaartal"], r["team, duo, solo"], r["voorronde, finale"]];
+    if (r["afbeelding_id"]) have.add(k(r["afbeelding_id"], ...rest));
+    have.add(k(r["gemaakte puzzel"], ...rest));
+    if (r["tijd 1e plek"]) have.add(k("t" + sec(r["tijd 1e plek"]), ...rest));
+  });
+  let added = 0;
+  (b.rijen || []).forEach((n) => {
+    if (!n.puzzel || !/^\d+:\d{2}:\d{2}$/.test(n.tijd || "")) return;
+    const rest = [n.jaar, n.categorie, n.ronde];
+    const keys = [k(n.puzzel, ...rest), k("t" + sec(n.tijd), ...rest)].concat(n.afbeelding_id ? [k(n.afbeelding_id, ...rest)] : []);
+    if (keys.some((x) => have.has(x))) return;
+    pzAppend(nk, "gemaakte puzzel", {
+      "gemaakte puzzel": String(n.puzzel).replace(/^[=+\-@]/, "'$&"), "jaartal": Number(n.jaar), "tijd 1e plek": n.tijd,
+      "team, duo, solo": n.categorie, "voorronde, finale": n.ronde, "afbeelding_id": n.afbeelding_id || "",
+      "stukjes": n.stukjes ? Number(n.stukjes) : "",
+    }, { "tijd 1e plek": "[h]:mm:ss" });
+    keys.forEach((x) => have.add(x));
     added++;
   });
   return { ok: true, added: added };

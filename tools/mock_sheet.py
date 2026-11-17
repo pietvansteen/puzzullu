@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Local stand-in for apps-script/Puzzullu.gs, for testing /loggen/ without the real Sheet:
-the same actions (addLog, addExemplaar, removeExemplaar, setMissing, setVideoUrl, setRating),
+the same actions (addLog, addExemplaar, removeExemplaar, setMissing, setVideoUrl, setRating, addNkTijden),
 written to testdata/*.csv. Started by MOCK=1 python3 tools/dev.py (port 8099, secret "test").
 """
 import csv, http.server, json, os, re, unicodedata
@@ -71,6 +71,20 @@ def act(b):
         for r in d:
             if r[0] == b["afbeelding_id"]: r[h.index("rating")] = "" if b["rating"] is None else str(b["rating"])
         save("afbeeldingen", h, d); return {"ok": True}
+    if a == "addNkTijden":
+        h, d = rows("nk")
+        low = [c.strip().lower() for c in h]
+        col = lambda name: low.index(name)
+        key = lambda afb, puz, jaar, cat, ronde: ((afb or slug(puz)), str(jaar), cat.lower(), ronde.lower())
+        have = {key(r[col("afbeelding_id")], r[col("gemaakte puzzel")], r[col("jaartal")], r[col("team, duo, solo")], r[col("voorronde, finale")]) for r in d}
+        added = 0
+        for n in b.get("rijen", []):
+            k = key(n["afbeelding_id"], n["puzzel"], n["jaar"], n["categorie"], n["ronde"])
+            if k in have: continue
+            row = {"gemaakte puzzel": n["puzzel"], "jaartal": str(n["jaar"]), "tijd 1e plek": n["tijd"], "team, duo, solo": n["categorie"],
+                   "voorronde, finale": n["ronde"], "afbeelding_id": n["afbeelding_id"], "stukjes": str(n["stukjes"] or "")}
+            d.append([row.get(c, "") for c in low]); have.add(k); added += 1
+        save("nk", h, d); return {"ok": True, "added": added}
     return {"error": "unknown action " + a}
 
 

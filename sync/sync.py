@@ -16,6 +16,10 @@ Once a day it also fetches the JvH catalogue (jvh.py) into jvh.json, which adds 
 ("versies") and JvH links to data.json. Pictures JvH has and the Sheet not yet are added to the Afbeeldingen tab
 through the Apps Script (when SHEET_WRITE_URL is set). sync-now with {"jvh": true} fetches it at once.
 
+Once a day it also reads the past events on nklegpuzzelen.nl (nk.py) and adds the winning times the NK-tijden tab
+does not have yet, through the Apps Script (only when SHEET_WRITE_URL is set). Event pages that gave a row are
+remembered in nk.json and not fetched again. {"jvh": true} in sync-now also does this at once.
+
 sync-now may also hold {"wacht": {"lijst": "logs", "id": "L0536", "veld": "video", "waarde": "https://..."}}
 (written by the API after a change): Google's CSV export can lag behind, so the sync tries again until data.json
 shows that change (the item exists, and when "veld" is given, has that value).
@@ -28,6 +32,8 @@ Settings via environment variables (see docker-compose.yml):
   INTERVAL          seconds between two syncs (default 86400); 0 = run once
   JVH_FILE          the JvH catalogue (default jvh.json next to OUT_FILE), fetched at most once a day
   JVH_SCRAPE        0 = never fetch the JvH catalogue (use the file as it is)
+  NK_SCRAPE         0 = never read nklegpuzzelen.nl
+  NK_FILE           the NK events already done (default nk.json next to OUT_FILE)
   SHEET_WRITE_URL / SHEET_WRITE_SECRET   the Apps Script, to add new JvH pictures to Afbeeldingen (optional)
   <NAME>_CSV        optional: a local CSV file instead of Google, e.g. LOGS_CSV=testdata/logs.csv
 
@@ -45,6 +51,7 @@ import urllib.request
 from datetime import date, datetime, timezone
 
 import jvh
+import nk
 import push
 from jvh import name_key, slug
 
@@ -67,6 +74,9 @@ SHEET_WRITE_SECRET = os.environ.get("SHEET_WRITE_SECRET", "")
 JVH_MAX_AGE = 20 * 3600  # fetch the catalogue at most about once a day
 NAMEN_FILE = os.path.join(os.path.dirname(os.path.abspath(JVH_FILE)), "jvh-namen.json")
 NAMEN_MAX_AGE = 7 * 24 * 3600  # the other names from the detail pages (about 320 pages): once a week
+NK_SCRAPE = os.environ.get("NK_SCRAPE", "1") != "0"
+NK_FILE = os.environ.get("NK_FILE") or os.path.join(os.path.dirname(os.path.abspath(OUT_FILE)), "nk.json")
+NK_MAX_AGE = 20 * 3600  # nklegpuzzelen.nl at most about once a day
 
 EXPORT_URL = "https://docs.google.com/spreadsheets/d/{sheet}/export?format=csv&gid={gid}"
 NEW_TABS = ("AFBEELDINGEN", "EXEMPLAREN", "LOGS")
@@ -397,6 +407,57 @@ def add_catalogue(afbeeldingen):
     return [c for c in cat if c["id"] not in seen]
 
 
+# ---------------------------------------------------------------- NK times from nklegpuzzelen.nl
+
+def apps_script(payload):
+    """POST to the Apps Script; returns its answer (a dict)."""
+    req = urllib.request.Request(SHEET_WRITE_URL, data=json.dumps({"secret": SHEET_WRITE_SECRET, **payload}).encode(),
+                                 headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def update_nk(data, force=False):
+    """New winning times from nklegpuzzelen.nl to the NK-tijden tab, about once a day (or when asked).
+    Returns True when rows were added (then the sync reads the tab again)."""
+    if not (NK_SCRAPE and SHEET_WRITE_URL and SHEET_WRITE_SECRET and data and data.get("layout") == "nieuw"):
+        return False
+    try:
+        with open(NK_FILE, encoding="utf-8") as f:
+            state = json.load(f)
+    except (OSError, ValueError):
+        state = {}
+    if not force and time.time() - (state.get("gecontroleerd") or 0) < NK_MAX_AGE:
+        return False
+    gedaan = set(state.get("gedaan", []))
+    try:
+        gevonden = nk.rijen(data["afbeeldingen"], name_key, log=log, overslaan=gedaan)
+    except Exception as e:
+        log(f"ERROR: NK results: {e}")
+        return False
+    nieuw = nk.nieuw(gevonden, data["nk"], name_key)
+    toegevoegd = 0
+    if nieuw:
+        try:
+            result = apps_script({"action": "addNkTijden", "id": f"nk-{len(gedaan)}-{len(nieuw)}-{date.today()}", "rijen": [
+                {"puzzel": r["puzzel"], "jaar": r["jaar"], "tijd": f"{r['sec'] // 3600}:{r['sec'] // 60 % 60:02d}:{r['sec'] % 60:02d}",
+                 "categorie": r["categorie"], "ronde": r["ronde"], "afbeelding_id": r["afbeelding"], "stukjes": r["stukjes"]}
+                for r in nieuw]})
+        except (OSError, ValueError) as e:
+            log(f"WARNING: could not add the NK times to the Sheet: {e}")
+            return False
+        if not result.get("ok"):
+            log(f"Apps Script said: {result}")
+            return False
+        toegevoegd = result.get("added", 0)
+        namen = ", ".join(f"{r['puzzel']} {r['jaar']}" for r in nieuw[:6])
+        log(f"NK times added to the Sheet: {toegevoegd} ({namen})")
+    # remember the events that gave a row (also the ones the tab had already), so they are not fetched again
+    gedaan |= {r["url"] for r in gevonden}
+    write_atomic({"gecontroleerd": time.time(), "gedaan": sorted(gedaan)}, NK_FILE)
+    return toegevoegd > 0
+
+
 def add_to_sheet(pictures):
     """New JvH pictures to the Afbeeldingen tab, through the Apps Script; they show on the site after the next sync."""
     if not (SHEET_WRITE_URL and SHEET_WRITE_SECRET):
@@ -550,8 +611,19 @@ def main():
                 if INTERVAL == 0:
                     sys.exit(1)
             time.sleep(5)
-        # the other names (weekly, slow): after the sync, so a new log never waits for it
+        # the other names (weekly, slow) and the NK times (daily): after the sync, so a new log never waits for them
         if update_namen(force=bool(asked and asked.get("jvh"))):
+            try:
+                data = sync_once()
+            except Exception as e:
+                log(f"ERROR: {e}")
+        try:
+            with open(OUT_FILE, encoding="utf-8") as f:
+                huidig = json.load(f)
+        except (OSError, ValueError):
+            huidig = None
+        if update_nk(huidig, force=bool(asked and asked.get("jvh"))):
+            time.sleep(5)  # Google's CSV export lags a little behind
             try:
                 sync_once()
             except Exception as e:

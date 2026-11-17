@@ -530,7 +530,7 @@
   // ---------------------------------------------------------------- E. the rest
 
   for (const [id, pad, tekst] of [["nu-sync", "/api/sync", "De site haalt de Sheet nu op; over een halve minuut is alles bijgewerkt."],
-    ["nu-jvh", "/api/jvh", "De JvH-catalogus en de Sheet worden nu opgehaald; dat duurt hooguit een minuut."]]) {
+    ["nu-jvh", "/api/jvh", "De JvH-catalogus, de NK-uitslagen en de Sheet worden nu opgehaald; dat duurt een paar minuten."]]) {
     $(id).addEventListener("click", async () => {
       const r = await fetch(pad, { method: "POST", headers: auth() }).catch(() => null);
       $("overig-melding").textContent = r && r.ok ? tekst : "Dat lukte niet. Probeer het zo nog een keer.";
