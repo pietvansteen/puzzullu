@@ -14,11 +14,11 @@
   const MAAT_KEY = "pz-stats-stukjes";
   const VAAK_MIN = 3;      // timed logs a version needs to be "vaak gelegd"
   const VAAK_TOON = 10;
-  const PERSONEN = 8;
+  const PERSONEN = 8;      // people shown before "Toon alle"
   const JAREN = 4;         // years shown before "Meer jaren"
   const JAAR_KEY = "pz-stats-jaar"; // the year chosen at "Per persoon" ("" = all years)
   const LAATST = 5;        // last puzzles done
-  const LAATST_KORT = 2;   // of which shown before "Toon nog"      // people shown before "Toon alle"
+  const LAATST_KORT = 2;   // of which shown before "Toon nog"
   const NK_GROOTTE = { solo: 1, duo: 2, team: 4 };
   const MAANDEN = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
   const DAGEN = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
@@ -52,19 +52,7 @@
   }
   const getal1 = (n) => n.toLocaleString("nl-NL", { maximumFractionDigits: 1 });
 
-  function voorbereiden(d) {
-    const afb = Object.fromEntries(d.afbeeldingen.map((a) => [a.id, a]));
-    const ex = Object.fromEntries(d.exemplaren.map((e) => [e.id, e]));
-    const logs = d.logs.map((l) => {
-      const e = ex[l.exemplaar] || {};
-      const stukjes = e.stukjes || 0;
-      return { ...l, e, a: afb[e.afbeelding], stukjes, versie: `${e.afbeelding}|${stukjes}`, team: l.makers.join("|"),
-        gelegd: Math.max(0, stukjes - (typeof l.missend === "number" ? l.missend : 0)) };
-    });
-    const getimed = logs.filter((l) => l.sec != null && l.stukjes);
-    const dozen = d.exemplaren.filter((e) => !e.weg);
-    return { ...d, afb, ex, logs, getimed, dozen };
-  }
+  const voorbereiden = window.PZR.voorbereiden;
 
   // ---------------------------------------------------------------- tiles, facts
 
@@ -129,11 +117,11 @@
       f.push(`De grootste verbetering: ${esc(wie(eerst.makers))} legden <i>${esc(naam(eerst.a))}</i> (${eerst.stukjes}) eerst in ${tijd(eerst.sec)} en later in ${tijd(laatst.sec)}: <b>${woorden(verbetering.winst)} sneller</b>.`);
     }
 
-    // fastest ever per piece count (sizes with at least 5 timed logs)
-    for (const [stukjes, lijst] of groepeer(getimed, (l) => l.stukjes)) {
+    // fastest ever per size (sizes with at least 5 timed logs; expert 500 apart from the normal 500)
+    for (const [, lijst] of groepeer(getimed, (l) => l.maat)) {
       if (lijst.length < 5) continue;
       const s = lijst.reduce((x, y) => (y.sec < x.sec ? y : x));
-      f.push(`De snelste ${getal(stukjes)} ooit: <b>${tijd(s.sec)}</b> door ${esc(wie(s.makers))}, met <i>${esc(naam(s.a))}</i>.`);
+      f.push(`De snelste ${window.PZR.maatNaam(s)} ooit: <b>${tijd(s.sec)}</b> door ${esc(wie(s.makers))}, met <i>${esc(naam(s.a))}</i>.`);
     }
     const langst = getimed.reduce((x, y) => (!x || y.sec > x.sec ? y : x), null);
     if (langst) f.push(`De langste puzzelsessie: <i>${esc(naam(langst.a))}</i> (${getal(langst.stukjes)}) door ${esc(wie(langst.makers))}, in <b>${tijd(langst.sec)}</b>.`);
@@ -195,7 +183,7 @@
         }
       }
       return Object.entries(p).sort((x, y) => y[1].n - x[1].n || y[1].stukjes - x[1].stukjes || x[0].localeCompare(y[0], "nl"))
-        .map(([m, x]) => [esc(m), getal(x.n), getal(x.solo), getal(x.stukjes), `${getal(Math.round(x.sec / 3600))} u`]);
+        .map(([m, x]) => [window.PZR.mens(m), getal(x.n), getal(x.solo), getal(x.stukjes), `${getal(Math.round(x.sec / 3600))} u`]);
     };
     // the top PERSONEN, the rest behind "Toon alle"; the last JAREN years, older ones behind "Meer jaren"
     let alle = false;
@@ -237,22 +225,72 @@
       Object.entries(o).sort((x, y) => y[1].n - x[1].n).map(([n, x]) => [esc(n), getal(x.n), getal(x.stukjes)]),
       ["Samen", getal(D.dozen.length), getal(som(D.dozen.map((e) => e.stukjes || 0)))]);
 
-    const maten = [...new Set(D.dozen.map((e) => e.stukjes).concat(D.logs.map((l) => l.stukjes)).filter(Boolean))].sort((x, y) => x - y);
-    $("per-stukjes").innerHTML = tabel(["Stukjes", "Dozen", "Gelegd", "Snelste"], maten.map((s) => {
-      const t = D.getimed.filter((l) => l.stukjes === s);
+    // per size; an expert 500 is its own row
+    const R = window.PZR, doosMaat = (e) => ({ stukjes: e.stukjes, expert: R.isExpert(D.afb[e.afbeelding], e.stukjes) });
+    const sleutel = (x) => `${x.stukjes}${x.expert ? "e" : ""}`;
+    const maten = [...new Map(D.dozen.map(doosMaat).concat(D.logs).filter((x) => x.stukjes).map((x) => [sleutel(x), { stukjes: x.stukjes, expert: x.expert }])).values()].sort(R.opMaat);
+    $("per-stukjes").innerHTML = tabel(["Stukjes", "Dozen", "Gelegd", "Snelste"], maten.map((m) => {
+      const k = sleutel(m);
+      const t = D.getimed.filter((l) => l.maat === k);
       const snel = t.length ? t.reduce((x, y) => (y.sec < x.sec ? y : x)) : null;
-      return [getal(s), getal(D.dozen.filter((e) => e.stukjes === s).length), getal(D.logs.filter((l) => l.stukjes === s).length),
+      return [esc(R.maatNaam(m)), getal(D.dozen.filter((e) => sleutel(doosMaat(e)) === k).length), getal(D.logs.filter((l) => l.maat === k).length),
         snel ? `<span title="${esc(wie(snel.makers))}, ${esc(naam(snel.a))}">${tijd(snel.sec)}</span>` : "–"];
     }));
   }
 
   // the last puzzles done: by date, and on the same date the one logged last first
+  // the record wall: per piece count the fastest time per group size; the most done piece counts first,
+  // the rest behind "Meer aantallen stukjes"
+  const REC_VAAK = 5; // timed logs a piece count needs to be shown at once
+  function records() {
+    const lijst = window.PZR.records(D);
+    const aantal = {};
+    for (const l of D.getimed) aantal[l.maat] = (aantal[l.maat] || 0) + 1;
+    const maten = [...new Set(lijst.map((r) => r.maat))];
+    const vaak = maten.filter((s) => aantal[s] >= REC_VAAK);
+    const naamGroep = Object.fromEntries(window.PZR.GROEPEN);
+    let alle = false;
+    const teken = () => {
+      $("records").innerHTML = (alle ? maten : vaak).map((s) => `<div class="rec-blok"><h3>${getal(parseInt(s, 10))} stukjes${s.endsWith("e") ? ' <span class="expert-tag">expert</span>' : ""}</h3><ul class="rec-lijst">`
+        + lijst.filter((r) => r.maat === s).map(({ groep, log: l }) => `<li><span class="rec-groep">${naamGroep[groep]}</span>`
+          + `<span class="rec-tijd">${tijd(l.sec)}</span><span class="rec-wie">${window.PZR.mensen(l.makers)}`
+          + `<small class="muted">${esc(naam(l.a))}${l.datum ? ` · <span class="nw">sinds ${datum(l.datum)}</span>` : ""}</small></span></li>`).join("")
+        + "</ul></div>").join("")
+        + (maten.length > vaak.length ? `<button type="button" class="link-btn" id="rec-meer">${alle ? "Minder tonen" : `Meer aantallen stukjes (${maten.length - vaak.length})`}</button>` : "");
+    };
+    $("records").addEventListener("click", (ev) => { if (ev.target.id === "rec-meer") { alle = !alle; teken(); } });
+    teken();
+  }
+
+  // the Mensen tab: a card per person who did a puzzle, linking to their page (the top ones first)
+  const KAARTJES = 8;
+  function kaartjes() {
+    const per = new Map();
+    for (const l of D.logs) for (const m of l.makers) {
+      if (!per.has(m)) per.set(m, []);
+      per.get(m).push(l);
+    }
+    const lijst = [...per].map(([m, ls]) => ({ m, n: ls.length, w: window.PZR.weekreeks(ls) }))
+      .sort((x, y) => y.n - x.n || x.m.localeCompare(y.m, "nl"));
+    let alle = false;
+    const teken = () => {
+      $("kaartjes").innerHTML = (alle ? lijst : lijst.slice(0, KAARTJES)).map(({ m, n, w }) =>
+        `<li><a class="kaartje" href="/persoon/?naam=${encodeURIComponent(m)}"><span class="kaartje-kop"><b>${esc(m)}</b>`
+        + (w.huidig ? `<span class="vlam" title="Weekreeks: ${w.huidig} ${w.huidig === 1 ? "week" : "weken"} op rij">🔥 ${w.huidig}</span>` : "")
+        + `</span><span class="muted">${getal(n)} ${n === 1 ? "puzzel" : "puzzels"}</span></a></li>`).join("");
+      $("kaartjes-meer").hidden = lijst.length <= KAARTJES;
+      $("kaartjes-meer").textContent = alle ? "Minder tonen" : `Alle puzzelaars (${lijst.length})`;
+    };
+    $("kaartjes-meer").addEventListener("click", () => { alle = !alle; teken(); });
+    teken();
+  }
+
   function laatst() {
     const nr = (l) => Number(String(l.id).replace(/\D/g, "")) || 0;
     const ls = D.logs.filter((l) => l.datum && l.a).sort((x, y) => y.datum.localeCompare(x.datum) || nr(y) - nr(x)).slice(0, LAATST);
     const rijen = ls.map((l) => [
       `${esc(naam(l.a))}<small class="muted">${l.stukjes ? `${getal(l.stukjes)} stukjes` : "onbekend aantal stukjes"}</small>`,
-      esc(wie(l.makers)), l.sec != null ? tijd(l.sec) : '<span class="muted">geen tijd</span>', datum(l.datum)]);
+      window.PZR.mensen(l.makers), l.sec != null ? tijd(l.sec) : '<span class="muted">geen tijd</span>', datum(l.datum)]);
     let alle = false;
     const teken = () => {
       $("laatst").innerHTML = tabel(["Puzzel", "Wie", "Tijd", "Datum"], alle ? rijen : rijen.slice(0, LAATST_KORT), "", [0, 1]);
@@ -375,11 +413,12 @@
   // time against date on 500 or 1000 pieces, with a smooth trend line
   function progressie() {
     const makers = eigen[0].makers;
-    const ls = eigen.filter((l) => l.stukjes === maat && l.datum).sort((x, y) => x.datum.localeCompare(y.datum));
-    const kop = `<div class="row grafiek-kop"><h3>Op ${maat} stukjes</h3><div class="chips" role="group" aria-label="Aantal stukjes">`
+    // expert puzzles are much harder: they would spoil the trend on 500
+    const ls = eigen.filter((l) => l.stukjes === maat && !l.expert && l.datum).sort((x, y) => x.datum.localeCompare(y.datum));
+    const kop = `<div class="row grafiek-kop"><h3>Op ${maat} stukjes${maat === 500 ? ' <small class="muted">zonder expert</small>' : ""}</h3><div class="chips" role="group" aria-label="Aantal stukjes">`
       + MATEN.map((m) => `<button type="button" class="chip" data-maat="${m}" aria-pressed="${m === maat}">${m}</button>`).join("") + "</div></div>";
     if (ls.length < MIN_TREND) {
-      $("progressie").innerHTML = `${kop}<p class="muted">${esc(wie(makers))} ${makers.length === 1 ? "heeft" : "hebben"} ${ls.length ? `pas ${ls.length} keer` : "nog geen"} ${maat} stukjes met tijd en datum gelegd. Voor een trend zijn er minstens ${MIN_TREND} nodig.</p>`;
+      $("progressie").innerHTML = `${kop}<p class="muted">${esc(wie(makers))} ${makers.length === 1 ? "heeft" : "hebben"} ${ls.length ? `pas ${ls.length} keer` : "nog geen"} ${maat} stukjes${maat === 500 ? " (geen expert)" : ""} met tijd en datum gelegd. Voor een trend zijn er minstens ${MIN_TREND} nodig.</p>`;
       return;
     }
     const k = Math.min(5, Math.floor(ls.length / 2));
@@ -540,7 +579,7 @@
       $("nk").innerHTML = rijen.length ? tabel(["Puzzel", "Winnaar", "Wij", "Verschil"], rijen.map(({ n, best }) => {
         const v = best.sec - n.sec;
         return [`${esc(nkNaam(n))}<small class="muted">NK ${n.jaar}, ${esc(n.ronde)}, ${esc(n.categorie)}</small>`,
-          tijd(n.sec), `${tijd(best.sec)}<small class="muted">${esc(wie(best.makers))}</small>${best.datum ? `<small class="muted">${datum(best.datum)}</small>` : ""}`,
+          tijd(n.sec), `${tijd(best.sec)}<small class="muted">${window.PZR.mensen(best.makers)}</small>${best.datum ? `<small class="muted">${datum(best.datum)}</small>` : ""}`,
           `<span class="${v < 0 ? "plus" : "min"}">${v < 0 ? "−" : "+"}${tijd(Math.abs(v))}</span>`];
       })) : "";
       $("nk-nog-kop").textContent = `NK-puzzels die we nog niet zo gelegd hebben (${q ? `${rest.length} van ${nog.length}` : nog.length})`;
@@ -555,6 +594,26 @@
     teken();
   }
 
+  // ---------------------------------------------------------------- tabs: Algemeen, Records, Mensen, Vergelijken, NK & collectie
+  // the tab is in the address (#records) so it can be linked to; the last one is remembered on this device
+
+  const TAB_KEY = "pz-stats-tab";
+  const knoppen = [...document.querySelectorAll(".stat-tabs [role=tab]")];
+  function kiesTab(tab, bewaren = true) {
+    if (!knoppen.some((b) => b.dataset.tab === tab)) tab = "algemeen";
+    for (const b of knoppen) b.setAttribute("aria-selected", String(b.dataset.tab === tab));
+    for (const p of document.querySelectorAll(".stats > .paneel")) p.hidden = p.id !== `tab-${tab}`;
+    if (bewaren) {
+      try { localStorage.setItem(TAB_KEY, tab); } catch (e) { /* private window */ }
+      history.replaceState(null, "", `#${tab}`);
+    }
+  }
+  for (const b of knoppen) b.addEventListener("click", () => kiesTab(b.dataset.tab));
+  window.addEventListener("hashchange", () => kiesTab(location.hash.slice(1), false));
+  let eersteTab = location.hash.slice(1);
+  if (!eersteTab) try { eersteTab = localStorage.getItem(TAB_KEY) || ""; } catch (e) { /* private window */ }
+  kiesTab(eersteTab, false);
+
   // ---------------------------------------------------------------- start
 
   data().then((d) => {
@@ -563,7 +622,10 @@
     feitjes();
     laatst();
     meldingen();
+    window.PZR.kalender($("kalender"), D.logs);
+    records();
     perJaar();
+    kaartjes();
     perPersoon();
     collectie();
     meest();

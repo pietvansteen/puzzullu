@@ -584,3 +584,107 @@ footer a { color: var(--muted); }
   .balk { grid-template-columns: 5.6em minmax(0, 1fr) 7.6em; gap: 8px; }
   .duel li { font-size: .85rem; gap: 4px 8px; }
 }
+
+/* ---------- Statistics tabs ---------- */
+.stat-tabs { margin: 4px 0 18px; }
+.stats > .paneel > .blok:first-child, .stats > .paneel > .tiles:first-child { margin-top: 0; }
+@media (max-width: 640px) {
+  .stat-tabs { flex-wrap: nowrap; gap: 4px; }
+  .stat-tabs button { flex: 1 1 auto; min-width: 0; padding: 7px 4px; font-size: clamp(.74rem, 3.5vw, .95rem); white-space: nowrap; }
+}
+
+/* ---------- Calendar heatmap ---------- */
+.kal { display: grid; grid-template-columns: 2.1em repeat(31, minmax(0, 1fr)); gap: 2px; margin-top: 4px; }
+.kal-as { color: var(--muted); font-size: .68rem; line-height: 1.2; text-align: center; align-self: center; }
+.kal-maand { text-align: left; }
+.kal-dag { aspect-ratio: 1; border-radius: 2px; cursor: pointer; }
+.kal-dag.later { background: none; box-shadow: inset 0 0 0 1px #2a4274; cursor: default; }
+.kal-dag.gekozen { box-shadow: 0 0 0 2px var(--ink); }
+@media (min-width: 640px) { .kal { gap: 3px; } .kal-dag { border-radius: 3px; } }
+.kal-legenda { display: flex; align-items: center; gap: 4px; margin-top: 6px; font-size: .8rem; }
+.kal-legenda i { width: 12px; height: 12px; border-radius: 3px; }
+.kal-legenda span:first-child { margin-right: 2px; }
+.kal-legenda span:last-child { margin-left: 2px; }
+.kal-detail { min-height: 1.5em; margin: 8px 0 0; font-size: .92rem; }
+
+/* ---------- Records ---------- */
+.rec-blok { margin: 14px 0 18px; }
+.rec-blok h3 { margin: 0 0 6px; }
+.rec-lijst { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.rec-lijst li { display: grid; grid-template-columns: 4.6em 5.6em minmax(0, 1fr); gap: 2px 10px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--line); }
+.rec-groep { color: var(--muted); font-size: .9rem; }
+.rec-tijd { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rec-tijd::first-letter { margin-right: 3px; }
+.nw { white-space: nowrap; }
+.rec-wie small { display: block; font-size: .8rem; }
+a.mens { color: inherit; text-decoration: none; }
+a.mens:hover, a.mens:focus-visible { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- People: cards on the statistics, the person page ---------- */
+.kaartjes { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.kaartje { display: grid; gap: 2px; height: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; }
+.kaartje:hover, .kaartje:focus-visible { border-color: var(--accent); }
+.kaartje-kop { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.kaartje b { font: 600 1.1rem/1.2 var(--f-display); min-width: 0; overflow-wrap: anywhere; }
+.kaartje .vlam { flex: none; font-size: .9rem; line-height: 1; white-space: nowrap; }
+#kaartjes-meer { margin-top: 8px; }
+.terug { margin: 4px 0 0; }
+.terug a { color: var(--muted); text-decoration: none; }
+.terug a:hover { color: var(--accent); }
+.persoon .hero { padding-top: 6px; }
+.reeks { gap: 6px; margin-top: 18px; }
+.reeks-getal { font-size: 1.15rem; }
+.reeks-getal b { font: 600 2rem/1 var(--f-display); color: var(--accent); }
+.persoon .tabel td small { display: block; }
+#partners-meer { margin-top: 8px; }
+
+/* ---------- Badges (person page, the card, the log pop-up) ---------- */
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.badge { display: grid; justify-items: center; gap: 2px; width: 100%; height: 100%; padding: 10px 6px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; text-align: center; cursor: pointer; }
+.badge:hover, .badge:focus-visible { border-color: var(--accent); }
+.badge.nog { background: transparent; }
+.badge.nog .badge-naam { color: var(--muted); }
+.badge-svg { display: block; flex: none; }
+.badge-svg .v { fill: currentColor; stroke: none; }
+.badge-svg .t { font: 700 20px var(--f-display); fill: currentColor; stroke: none; text-anchor: middle; }
+.badge-naam { font: 600 .9rem/1.2 var(--f-display); -webkit-hyphens: auto; hyphens: auto; }
+.badge-rang { color: var(--muted); font-size: .78rem; line-height: 1.2; }
+.badge-balk { display: block; width: 70%; height: 4px; margin-top: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
+.badge-balk i { display: block; height: 100%; border-radius: 2px; background: var(--accent); }
+.badge-balk.groot { width: 100%; height: 6px; margin: 0; }
+.badges-sub { margin: 22px 0 2px; font: 600 1.1rem var(--f-display); }
+.badges-leeg { grid-column: 1 / -1; }
+#feest-meer { margin-top: 8px; }
+.badge-kaart { width: min(92vw, 440px); }
+.badge-kaart h2 { margin: 0; }
+#bk-inhoud { display: grid; gap: 12px; margin-bottom: 16px; }
+#bk-inhoud p { margin: 0; }
+.bk-kop { display: flex; align-items: center; gap: 14px; }
+.bk-lijst { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.bk-lijst li { display: grid; grid-template-columns: 4.6em 1fr; column-gap: 10px; padding: 6px 10px; border-radius: 8px; background: var(--surface-2); color: var(--muted); }
+.bk-lijst li.ja { color: var(--ink); }
+.bk-rang { font-weight: 700; }
+.bk-wanneer { grid-column: 2; font-size: .85rem; }
+.feest-badge { display: grid; gap: 6px; }
+.feest-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---------- Year overview (person page) ---------- */
+#jaar .tiles { margin-top: 4px; }
+.jaarfeiten { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.jaarfeiten li { display: grid; align-content: start; gap: 2px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+@media (min-width: 640px) { .jaarfeiten { grid-template-columns: 1fr 1fr; } }
+.jaar-badges-kop { margin: 18px 0 8px; }
+.jaar-badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.jaar-badges li { display: flex; align-items: center; gap: 8px; }
+.jaar-badges span { display: grid; font: 600 .92rem/1.2 var(--f-display); }
+.jaar-badges small { font: 400 .8rem var(--f-body); }
+
+/* ---------- Prediction (Loggen, generator) ---------- */
+.voorspelling { display: grid; gap: 2px; margin: 0; padding: 10px 14px; border: 1px dashed var(--line); border-radius: 12px; }
+.voorspelling small { font-size: .82rem; }
+.wie-legt { display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.wie-legt .feitje-kop { margin: 0; }
+.wie-legt .feitje-kop .muted { font: 400 .85rem var(--f-body); }
+
+/* Expert puzzles (JvH Expert series): a size of their own */
+.expert-tag { display: inline-block; padding: 0 7px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); font: 600 .72rem/1.5 var(--f-body); letter-spacing: .3px; vertical-align: 1px; }

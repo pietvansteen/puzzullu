@@ -7,7 +7,7 @@ The JvH catalogue, from the two lists in the "digitaal museum" of jvh-puzzels.nl
 catalogue() combines them: every picture of list 1, plus titles of list 2 that are not in list 1
 (derived editions such as "In de drukte!", their own picture with bron "jvh-puzzels"). Combo boxes
 are left out as a picture of their own (their title has "/" or "&" between the names). Every picture
-gets the piece counts of its editions ("versies"); an XXXL edition ("De Storm - XXXL") counts as a version
+gets the piece counts of its editions ("versies"), and those that are in the Expert series ("expert"); an XXXL edition ("De Storm - XXXL") counts as a version
 of its picture.
 
 namen() reads the detail page of each picture: it lists every product based on that picture, often under
@@ -163,7 +163,7 @@ def catalogue(afbeeldingen_html=None, puzzels_html=None):
     def add(row, bron, href_key):
         a = {"id": detail_slug(row.get("href")) or slug(row.get("first-lang") or row.get("second-lang")),
              "nl": row.get("first-lang", ""), "en": row.get("second-lang", ""), "tekenaar": row.get("tekenaar", ""),
-             "jaar": None, "bron": bron, "jvhUrl": BASE + row["href"] if row.get("href") else "", "versies": []}
+             "jaar": None, "bron": bron, "jvhUrl": BASE + row["href"] if row.get("href") else "", "versies": [], "expert": []}
         base, n = a["id"], 2
         while a["id"] in ids:  # JvH has a few detail pages with the same name
             a["id"], n = f"{base}-{n}", n + 1
@@ -189,6 +189,9 @@ def catalogue(afbeeldingen_html=None, puzzels_html=None):
         stukjes = re.fullmatch(r"\d+", r.get("stukjes", "").replace(".", ""))
         if stukjes and int(stukjes.group()) not in a["versies"]:
             a["versies"].append(int(stukjes.group()))
+        # the Expert series (500 pieces, much harder): its own category on the site
+        if stukjes and "expert" in r.get("serie", "").lower() and int(stukjes.group()) not in a["expert"]:
+            a["expert"].append(int(stukjes.group()))
     for a in afbeeldingen:
         a["versies"].sort()
     return {"afbeeldingen": afbeeldingen, "puzzels": len(rows2), "combi": combi}

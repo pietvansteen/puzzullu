@@ -1,5 +1,6 @@
 /* Puzzullu — the generator (/generator/): picks one random box we own, filtered on owner, pieces, difficulty and
-   "nog niet gemaakt door" (per version: none of those people ever did this picture with this piece count).
+   "nog niet gemaakt door" (per version: none of those people ever did this picture with this piece count); then
+   "Wie legt hem?" gives the predicted time for the chosen people.
    Filters are remembered per device (localStorage). */
 (function () {
   "use strict";
@@ -8,13 +9,19 @@
   const $ = (id) => document.getElementById(id);
   const VAAK = 5; // as on the overview: names with more than 5 logs first, the rest behind "Meer namen"
   const OPSLAG = "pz-generator-v1";
-  const standaard = { eigenaren: [], stukjes: [], moeilijk: [], niet: [], samen: true, alleNamen: false };
+  const standaard = { eigenaren: [], stukjes: [], moeilijk: [], niet: [], samen: true, alleNamen: false, wie: [], alleWie: false };
 
   let st = { ...standaard };
   try { st = { ...standaard, ...JSON.parse(localStorage.getItem(OPSLAG) || "{}") }; } catch (e) { /* private window */ }
   const bewaar = () => { try { localStorage.setItem(OPSLAG, JSON.stringify(st)); } catch (e) { /* ignore */ } };
+  st.stukjes = st.stukjes.map(String); // sizes are "500" or "500e" (expert) since 2.0; older settings hold numbers
+
+  // a size: the piece count, plus "e" for an expert version (JvH Expert series), so "500" is the normal 500 only
+  const maat = (a, stukjes) => `${stukjes}${a && (a.expert || []).includes(stukjes) ? "e" : ""}`;
+  const maatLabel = (m) => (m.endsWith("e") ? `${parseInt(m, 10)} expert` : m);
 
   let D = null;
+  let PD = null; // data.json made ready by rekenen.js, for the prediction
   let vorige = null; // the box shown now, so "Nog een keer" picks another one
 
   const versie = (afb, stukjes) => `${afb}|${stukjes}`;
@@ -40,7 +47,8 @@
     }
     const perEigenaar = {};
     for (const e of dozen) for (const o of e.eigenaren) telOp(perEigenaar, o);
-    const stukjes = [...new Set(dozen.map((e) => e.stukjes).filter(Boolean))].sort((x, y) => x - y);
+    const stukjes = [...new Set(dozen.filter((e) => e.stukjes).map((e) => maat(afb[e.afbeelding], e.stukjes)))]
+      .sort((x, y) => parseInt(x, 10) - parseInt(y, 10) || x.length - y.length);
     return { afb, dozen, gedaan, keer, eigenaren: opAantal(perEigenaar), makers: opAantal(keer), stukjes };
   }
 
@@ -51,7 +59,7 @@
 
   function tekenFilters() {
     $("f-eigenaar").innerHTML = D.eigenaren.map((v) => chip("eigenaren", v)).join("");
-    $("f-stukjes").innerHTML = D.stukjes.map((v) => chip("stukjes", v)).join("");
+    $("f-stukjes").innerHTML = D.stukjes.map((v) => chip("stukjes", v, maatLabel(v))).join("");
     $("f-rating").innerHTML = [1, 2, 3, 4, 5, 0].map((v) => chip("moeilijk", v, v ? "★".repeat(v) : "Zonder rating",
       v ? ` aria-label="Rating ${v} van 5"` : "")).join("");
     tekenNamen();
@@ -69,7 +77,7 @@
     return D.dozen.filter((e) => {
       const a = D.afb[e.afbeelding];
       if (st.eigenaren.length && !e.eigenaren.some((o) => st.eigenaren.includes(o))) return false;
-      if (st.stukjes.length && !st.stukjes.includes(e.stukjes)) return false;
+      if (st.stukjes.length && !st.stukjes.includes(maat(a, e.stukjes))) return false;
       if (st.moeilijk.length && !st.moeilijk.includes(a.rating || 0)) return false;
       const v = D.gedaan[versie(e.afbeelding, e.stukjes)];
       // samen: never did it with all of them in one go (as a duo, team, ...); otherwise: none of them ever did it
@@ -109,7 +117,7 @@
     const b = ev.target.closest(".chip[data-key]");
     if (!b) return;
     const key = b.dataset.key;
-    const v = ["stukjes", "moeilijk"].includes(key) ? Number(b.dataset.v) : b.dataset.v;
+    const v = key === "moeilijk" ? Number(b.dataset.v) : b.dataset.v;
     st[key] = st[key].includes(v) ? st[key].filter((x) => x !== v) : [...st[key], v];
     b.setAttribute("aria-pressed", st[key].includes(v));
     bewaar();
@@ -132,7 +140,7 @@
       : "Deze versie hebben we nog nooit gelegd.";
     return `<h2 class="lot-titel">${esc(naam(a))}</h2>`
       + (a.nl && a.nl !== naam(a) ? `<p class="lot-nl">${esc(a.nl)}</p>` : "")
-      + `<p class="lot-doos"><b>${e.stukjes ? `${getal(e.stukjes)} stukjes` : "Onbekend aantal stukjes"}</b>, ${esc(wie)}${e.volgnummer > 1 ? ` (doos ${e.volgnummer})` : ""}</p>`
+      + `<p class="lot-doos"><b>${e.stukjes ? `${getal(e.stukjes)} stukjes` : "Onbekend aantal stukjes"}</b>${(a.expert || []).includes(e.stukjes) ? ' <span class="expert-tag">expert</span>' : ""}, ${esc(wie)}${e.volgnummer > 1 ? ` (doos ${e.volgnummer})` : ""}</p>`
       + (a.rating ? `<p class="sterren" aria-label="Moeilijkheid ${a.rating} van 5">${sterren(a.rating)} <span class="muted">moeilijkheid</span></p>` : "")
       + `<p class="muted">${esc(gelegd)}${mist ? ` ${esc(mist)}` : ""}</p>`;
   }
@@ -144,10 +152,13 @@
     const e = keus[Math.floor(Math.random() * keus.length)];
     vorige = e;
     $("kies").textContent = "Nog een keer";
+    $("wie-legt").hidden = true;
     $("naar-loggen").hidden = true;
     const klaar = () => {
       $("uitslag").innerHTML = kaart(e);
       $("uitslag").classList.remove("schud");
+      $("wie-legt").hidden = !e.stukjes;
+      tekenWie();
       if (admin.get()) {
         $("naar-loggen").href = `/loggen/?doos=${encodeURIComponent(e.id)}`;
         $("naar-loggen").hidden = false;
@@ -170,12 +181,38 @@
 
   $("kies").addEventListener("click", trek);
 
+  // ---------------------------------------------------------------- who does it: the predicted time
+
+  function tekenWie() {
+    const vaak = D.makers.filter((m) => D.keer[m] > VAAK || st.wie.includes(m));
+    const rest = D.makers.length - vaak.length;
+    $("wie-chips").innerHTML = (st.alleWie ? D.makers : vaak).map((m) => `<button type="button" class="chip" data-v="${esc(m)}" aria-pressed="${st.wie.includes(m)}">${esc(m)}</button>`).join("")
+      + (rest ? `<button type="button" class="chip meer" data-meer>${st.alleWie ? "Minder namen" : `Meer namen (${rest})`}</button>` : "");
+    const e = vorige, p = $("g-voorspelling");
+    const v = e && st.wie.length && window.PZR ? window.PZR.voorspel(PD, e.afbeelding, e.stukjes, st.wie) : null;
+    p.hidden = !st.wie.length;
+    p.innerHTML = v ? `<span>🔮 ${st.wie.length === 1 ? esc(st.wie[0]) : "Jullie"} ${st.wie.length === 1 ? "doet" : "doen"} er ${window.PZR.voorspelTekst(v)} over.</span>`
+      + `<small class="muted">${window.PZR.voorspelUitleg(v, st.wie, e.stukjes)}</small>`
+      : `<span class="muted">Nog geen tijden met ${st.wie.length} ${st.wie.length === 1 ? "persoon" : "mensen"} op ${e ? e.stukjes : ""} stukjes, dus geen voorspelling.</span>`;
+  }
+
+  $("wie-chips").addEventListener("click", (ev) => {
+    const b = ev.target.closest(".chip");
+    if (!b) return;
+    if (b.dataset.meer != null) st.alleWie = !st.alleWie;
+    else st.wie = st.wie.includes(b.dataset.v) ? st.wie.filter((x) => x !== b.dataset.v) : [...st.wie, b.dataset.v];
+    bewaar();
+    tekenWie();
+  });
+
   data().then((d) => {
     D = voorbereiden(d);
+    if (window.PZR) PD = window.PZR.voorbereiden(d);
     // drop remembered choices that no longer exist
     st.eigenaren = st.eigenaren.filter((v) => D.eigenaren.includes(v));
     st.stukjes = st.stukjes.filter((v) => D.stukjes.includes(v));
     st.niet = st.niet.filter((v) => D.makers.includes(v));
+    st.wie = st.wie.filter((v) => D.makers.includes(v));
     tekenFilters();
     telling();
     $("uitslag").innerHTML = `<p class="muted">Kies je filters, of druk meteen op de knop.</p>`;

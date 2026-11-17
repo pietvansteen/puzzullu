@@ -110,7 +110,7 @@
   }
 
   // name chips with "Meer namen" and a field for a new name
-  function namenKiezer(boxId, nieuwId, knopId) {
+  function namenKiezer(boxId, nieuwId, knopId, bijWijzig = () => {}) {
     const gekozen = new Set();
     let alle = false;
     const box = $(boxId);
@@ -127,6 +127,7 @@
       if (b.classList.contains("meer")) alle = !alle;
       else gekozen.has(b.dataset.v) ? gekozen.delete(b.dataset.v) : gekozen.add(b.dataset.v);
       teken();
+      bijWijzig();
     });
     const voegToe = () => {
       let n = $(nieuwId).value.replace(/\s+/g, " ").trim().replace(/,/g, "");
@@ -138,15 +139,31 @@
       alle = alle || !((D.keer[bekend || n] || 0) > VAAK);
       $(nieuwId).value = "";
       teken();
+      bijWijzig();
     };
     $(knopId).addEventListener("click", voegToe);
     $(nieuwId).addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); voegToe(); } });
-    return { teken, gekozen: () => [...gekozen], leeg: () => { gekozen.clear(); teken(); } };
+    return { teken, gekozen: () => [...gekozen], leeg: () => { gekozen.clear(); teken(); bijWijzig(); } };
   }
 
   // ---------------------------------------------------------------- A. a time
 
-  const makers = namenKiezer("tijd-makers", "tijd-nieuw", "tijd-nieuw-knop");
+  const makers = namenKiezer("tijd-makers", "tijd-nieuw", "tijd-nieuw-knop", () => voorspelling());
+
+  // the prediction, as soon as a box and the people are chosen (PD: data.json made ready by rekenen.js)
+  let PD = null, laatsteVoorspelling = null;
+  function voorspelling() {
+    laatsteVoorspelling = null;
+    const wie = makers.gekozen();
+    if (!window.PZR || !tijdDoos || !wie.length) { $("voorspelling").hidden = true; return; }
+    PD = PD || window.PZR.voorbereiden(D);
+    const v = window.PZR.voorspel(PD, tijdDoos.afbeelding, tijdDoos.stukjes, wie);
+    $("voorspelling").hidden = !v;
+    if (!v) return;
+    laatsteVoorspelling = { ...v, doos: tijdDoos.id, team: [...wie].sort((x, y) => x.localeCompare(y, "nl")).join("|") };
+    $("voorspelling").innerHTML = `<span>🔮 Voorspelling: ${window.PZR.voorspelTekst(v)}</span>`
+      + `<small class="muted">${window.PZR.voorspelUitleg(v, wie, tijdDoos.stukjes)}</small>`;
+  }
   const tekenMakers = () => makers.teken();
   let tijdAfb = null, tijdDoos = null;
 
@@ -155,6 +172,7 @@
   function kiesPuzzel(a) {
     tijdAfb = a;
     tijdDoos = null;
+    $("voorspelling").hidden = true;
     const exs = exVan(a.id).filter((e) => !e.weg).sort((x, y) => (x.stukjes || 0) - (y.stukjes || 0));
     $("tijd-doos").hidden = false;
     $("tijd-dozen").innerHTML = exs.length
@@ -201,6 +219,7 @@
   // the box decides what "compleet" means: with missing pieces it is "weer compleet, stukje gevonden"
   function kiesDoos(e) {
     tijdDoos = e;
+    setTimeout(voorspelling);
     const mist = e.missend == null || e.missend > 0;
     $("compleet-label").textContent = mist ? "Weer compleet, stukje gevonden" : "Compleet";
     $("tijd-mist").value = e.missend || "";
@@ -247,6 +266,7 @@
         ingevoerd: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) };
       feest(nieuw, tijdDoos, tijdAfb);
       D.logs.push(nieuw);
+      PD = null;
       for (const m of nieuw.makers) D.keer[m] = (D.keer[m] || 0) + 1;
       tijdDoos.missend = body.missend;
       // empty the form for the next one, keep the date and the people
@@ -254,6 +274,7 @@
       $("tijd-gefilmd").checked = false;
       $("tijd-doos").hidden = true;
       tijdAfb = tijdDoos = null;
+      $("voorspelling").hidden = true;
       tekenVideos();
       tekenLaatste();
     } catch (e) {
@@ -312,9 +333,31 @@
           : `<p>Je zat ${verschil(l.sec - n.sec)} van ${wat} (${tijd(n.sec)}).</p>`);
       }
     }
+    const v = laatsteVoorspelling;
+    if (l.sec != null && v && v.doos === l.exemplaar && v.team === l.makers.join("|")) {
+      const d = l.sec - v.sec;
+      regels.push(Math.abs(d) < 60 ? `<p>🔮 Precies zoals voorspeld (${tijd(v.sec)})!</p>`
+        : `<p>🔮 ${verschil(Math.abs(d))} ${d < 0 ? "sneller" : "langzamer"} dan voorspeld (${tijd(v.sec)})${l.sec < v.van ? ". Knap!" : "."}</p>`);
+    }
+    regels.push(...nieuweBadges(l));
     regels.push('<p class="muted">De site is over een halve minuut bijgewerkt.</p>');
     $("feest-tekst").innerHTML = regels.join("");
     $("feest").showModal();
+  }
+
+  // the badges (or higher ranks) this log brings, per maker, with a link to their page
+  function nieuweBadges(l) {
+    if (!window.PZB || !window.PZR) return [];
+    try {
+      const B = window.PZB, voor = window.PZR.voorbereiden(D), na = window.PZR.voorbereiden({ ...D, logs: [...D.logs, l] });
+      return B.nieuw(voor, na, l.makers).map(({ wie, nieuw }) => `<div class="feest-badge"><p>🎖️ ${nieuw.length === 1 ? "Nieuwe badge" : "Nieuwe badges"} voor <b>${esc(wie)}</b>: `
+        + nieuw.map((x) => `${esc(x.b.naam)}${x.b.grenzen.length > 1 ? ` (${B.RANGEN[x.rang - 1]})` : ""}`).join(", ")
+        + `</p><div class="feest-badges">${nieuw.map((x) => B.svg(x.b, x.rang, 52)).join("")}</div>`
+        + `<p><a href="/persoon/?naam=${encodeURIComponent(wie)}#badges">Bekijk de badges van ${esc(wie)}</a></p></div>`);
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
   }
 
   // ---------------------------------------------------------------- B. boxes

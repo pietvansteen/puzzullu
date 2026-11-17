@@ -19,6 +19,11 @@
     van: 0, tot: LAATSTE, snelste: false, video: false, sort: "az", tekenaar: false, rating: true, alles: false };
   let st = { ...standaard };
   try { st = { ...standaard, ...JSON.parse(localStorage.getItem(OPSLAG) || "{}"), zoek: "" }; } catch (e) { /* private window */ }
+  st.stukjes = st.stukjes.map(String); // sizes are "500" or "500e" (expert) since 2.0; older settings hold numbers
+
+  // a size: the piece count, plus "e" for an expert version (JvH Expert series), so "500" is the normal 500 only
+  const maat = (a, stukjes) => `${stukjes}${a && (a.expert || []).includes(stukjes) ? "e" : ""}`;
+  const maatLabel = (m) => (m.endsWith("e") ? `${parseInt(m, 10)} expert` : m);
   // the search term is not remembered, the filters and checkboxes are
   const bewaar = () => { try { localStorage.setItem(OPSLAG, JSON.stringify({ ...st, zoek: "" })); } catch (e) { /* ignore */ } };
 
@@ -63,7 +68,9 @@
     }));
     afbeeldingen.sort((x, y) => x.naam.localeCompare(y.naam, "nl", { sensitivity: "base" }));
     // the filters are built from the data, so a new piece count or person shows up by itself
-    const stukjes = [...new Set(d.exemplaren.map((e) => e.stukjes).filter(Boolean))].sort((x, y) => x - y);
+    const afb = Object.fromEntries(d.afbeeldingen.map((a) => [a.id, a]));
+    const stukjes = [...new Set(d.exemplaren.filter((e) => e.stukjes).map((e) => maat(afb[e.afbeelding], e.stukjes)))]
+      .sort((x, y) => parseInt(x, 10) - parseInt(y, 10) || x.length - y.length);
     const eigenaren = [...new Set(d.exemplaren.flatMap((e) => e.eigenaren))].sort((x, y) => x.localeCompare(y, "nl"));
     const keer = {};
     for (const l of d.logs) for (const m of l.makers) keer[m] = (keer[m] || 0) + 1;
@@ -96,7 +103,7 @@
     for (const [key, waarden] of [["stukjes", D.stukjes], ["eigenaren", D.eigenaren], ["makers", D.makers]]) {
       st[key] = st[key].filter((v) => waarden.includes(v)); // a remembered name may be gone
     }
-    $("f-stukjes").innerHTML = D.stukjes.map((v) => chip("stukjes", v)).join("");
+    $("f-stukjes").innerHTML = D.stukjes.map((v) => chip("stukjes", v, maatLabel(v))).join("");
     $("f-eigenaar").innerHTML = D.eigenaren.map((v) => chip("eigenaren", v)).join("");
     makerChips();
     $("f-groep").innerHTML = GROEPEN.map(([v, label]) => chip("groep", v, label)).join("");
@@ -134,7 +141,7 @@
       const b = ev.target.closest(".chip");
       if (!b) return;
       const key = b.dataset.key;
-      const v = ["stukjes", "groep", "moeilijk"].includes(key) ? Number(b.dataset.v) : b.dataset.v;
+      const v = ["groep", "moeilijk"].includes(key) ? Number(b.dataset.v) : b.dataset.v;
       st[key] = st[key].includes(v) ? st[key].filter((x) => x !== v) : [...st[key], v];
       b.setAttribute("aria-pressed", st[key].includes(v));
       if (key === "makers") makerChips();
@@ -242,7 +249,7 @@
       if (st.moeilijk.length && !st.moeilijk.includes(a.rating || 0)) continue;
       const versies = new Map(); // stukjes -> [{ e, logs }]
       for (const e of a.exemplaren) {
-        if (st.stukjes.length && !st.stukjes.includes(e.stukjes)) continue;
+        if (st.stukjes.length && !st.stukjes.includes(maat(a, e.stukjes))) continue;
         if (st.eigenaren.length && !e.eigenaren.some((p) => st.eigenaren.includes(p))) continue;
         const logs = e.logs.filter((l) => maker(l) && (!tijdFilter || perVersie || (l.sec != null && binnen(l.sec))));
         if (logFilter && (!perVersie || st.video) && !logs.length) continue;
@@ -265,7 +272,7 @@
       const t = treffers && treffers.get(a.id);
       if (vs.length) zichtbaar.push({ a, vs, n, t, laatst, snelst });
       else if (st.alles && !a.exemplaren.length && !st.eigenaren.length && !logFilter
-        && (!st.stukjes.length || a.versies.some((v) => st.stukjes.includes(v)))) zichtbaar.push({ a, vs, n: 0, t, laatst: "", snelst: null });
+        && (!st.stukjes.length || a.versies.some((v) => st.stukjes.includes(maat(a, v))))) zichtbaar.push({ a, vs, n: 0, t, laatst: "", snelst: null });
     }
     // stable sorts: the same count or date stays alphabetical
     if (st.sort === "minst" || st.sort === "meest") {
@@ -349,7 +356,7 @@
   function versie(a, stukjes, exs) {
     const logs = exs.flatMap(({ e, logs }) => logs.map((l) => ({ l, e })));
     const meer = exs.length > 1;
-    const regel = `<b>${stukjes || "?"}</b> ${exs.map(({ e }) => doos(e)).join('<span class="sep"> · </span>')}`
+    const regel = `<b>${stukjes || "?"}</b>${(a.expert || []).includes(stukjes) ? ' <span class="expert-tag" title="Uit de Expert-serie: veel moeilijker dan een gewone 500">expert</span>' : ""} ${exs.map(({ e }) => doos(e)).join('<span class="sep"> · </span>')}`
       + (logs.length ? ` <span class="keer">(${logs.length}x)</span>` : "");
     if (!logs.length) return `<li class="ex-regel">${regel}</li>`;
     logs.sort((x, y) => (x.l.sec ?? Infinity) - (y.l.sec ?? Infinity));
