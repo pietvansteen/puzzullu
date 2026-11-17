@@ -1,6 +1,6 @@
 [
  {"version": "2.0.0",
-  "date": "2026-11-17",
+  "date": "2026-11-18",
   "changes": [
   "Statistieken in tabbladen: Algemeen, Records, Mensen, Vergelijken en NK & meer. De site onthoudt welk tabblad je het laatst open had.",
   "Nieuw bij Algemeen: een kalender met per dag hoeveel puzzels er gelegd zijn. Tik op een dag om te zien welke.",
@@ -10,7 +10,8 @@
   "Badges! Puzzelstukjes in hout, brons, zilver, goud en diamant, plus speciale badges en feestdagbadges voor de juiste puzzel op de juiste dag. Tik op een badge voor de uitleg en wanneer je hem haalde.",
   "Jaaroverzicht op je eigen pagina: je drukste maand, snelste puzzel, favoriete puzzelpartner, grootste verbetering, reeksen en nieuwe badges van dat jaar.",
   "Voorspelling: bij het loggen en in de generator (Wie legt hem?) zie je hoe lang jullie er waarschijnlijk over doen. Na het opslaan zie je of je sneller of langzamer was dan voorspeld, en welke nieuwe badges je haalde.",
-  "Expertpuzzels van 500 stukjes zijn een eigen categorie: ze hebben eigen records, een eigen filter in het overzicht en de generator, en tellen niet mee bij de gewone 500."
+  "Expertpuzzels van 500 stukjes zijn een eigen categorie: ze hebben eigen records, een eigen filter in het overzicht en de generator, en tellen niet mee bij de gewone 500.",
+  "De NK-tijden worden elke dag bijgewerkt: nieuwe uitslagen van nklegpuzzelen.nl komen vanzelf in de lijst, zodat de vergelijking met het NK altijd de nieuwste wedstrijden meeneemt."
  ]},
  {"version": "1.6.0",
   "date": "2026-11-17",
