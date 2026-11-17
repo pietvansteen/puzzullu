@@ -260,10 +260,12 @@
       const n = vs.reduce((s, [, exs]) => s + exs.reduce((t, x) => t + x.logs.length, 0), 0);
       // the most recent date of the shown logs ("" when never done or only without a date)
       const laatst = vs.reduce((s, [, exs]) => exs.reduce((t, x) => x.logs.reduce((u, l) => (l.datum > u ? l.datum : u), t), s), "");
+      // the best time of the shown logs (null when none of them has a time)
+      const snelst = vs.reduce((s, [, exs]) => exs.reduce((t, x) => x.logs.reduce((u, l) => (l.sec != null && (u == null || l.sec < u) ? l.sec : u), t), s), null);
       const t = treffers && treffers.get(a.id);
-      if (vs.length) zichtbaar.push({ a, vs, n, t, laatst });
+      if (vs.length) zichtbaar.push({ a, vs, n, t, laatst, snelst });
       else if (st.alles && !a.exemplaren.length && !st.eigenaren.length && !logFilter
-        && (!st.stukjes.length || a.versies.some((v) => st.stukjes.includes(v)))) zichtbaar.push({ a, vs, n: 0, t, laatst: "" });
+        && (!st.stukjes.length || a.versies.some((v) => st.stukjes.includes(v)))) zichtbaar.push({ a, vs, n: 0, t, laatst: "", snelst: null });
     }
     // stable sorts: the same count or date stays alphabetical
     if (st.sort === "minst" || st.sort === "meest") {
@@ -273,6 +275,10 @@
       // puzzles without a date go last either way
       const r = st.sort === "recent" ? -1 : 1;
       zichtbaar.sort((x, y) => (!x.laatst - !y.laatst) || r * x.laatst.localeCompare(y.laatst));
+    } else if (st.sort === "snel" || st.sort === "traag") {
+      // by the best time of the shown logs (so with filters: the best time of those makers, pieces, ...); no time last
+      const r = st.sort === "snel" ? 1 : -1;
+      zichtbaar.sort((x, y) => ((x.snelst == null) - (y.snelst == null)) || r * (x.snelst - y.snelst));
     }
     if (treffers) zichtbaar.sort((x, y) => x.t.rang - y.t.rang); // title first, then other names, then related
 
@@ -308,12 +314,13 @@
     return hits;
   }
 
-  function puzzel({ a, vs, n, t, laatst }) {
+  function puzzel({ a, vs, n, t, laatst, snelst }) {
     const meta = st.tekenaar && (a.tekenaar || a.jaar)
       ? ` <span class="meta">(${esc([a.tekenaar, a.jaar].filter(Boolean).join(", "))})</span>` : "";
     const nl = (a.nl && a.nl !== a.naam ? `<small>${esc(a.nl)}</small>` : "")
       + (t && t.noot ? `<small class="noot">${esc(t.noot)}</small>` : "")
-      + ((st.sort === "recent" || st.sort === "lang") && laatst ? `<small class="noot">laatst gemaakt op ${datum(laatst)}</small>` : "");
+      + ((st.sort === "recent" || st.sort === "lang") && laatst ? `<small class="noot">laatst gemaakt op ${datum(laatst)}</small>` : "")
+      + ((st.sort === "snel" || st.sort === "traag") && snelst != null ? `<small class="noot">snelste tijd ${tijd(snelst)}</small>` : "");
     // stars and count always take their place, so the columns line up
     const rating = st.rating
       ? `<span class="stars"${a.rating ? ` title="Moeilijkheid ${a.rating} van 5" aria-label="Moeilijkheid ${a.rating} van 5"` : ""}>${sterren(a.rating)}</span>` : "";

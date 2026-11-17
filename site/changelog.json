@@ -1,4 +1,9 @@
 [
+ {"version": "1.6.0",
+  "date": "2026-11-17",
+  "changes": [
+  "In het overzicht kun je sorteren op tijd: snelste of langzaamste eerst. Met filters erbij telt alleen de tijd die past, dus met 500 stukjes, Hanna en Solo zie je bovenaan Hanna's snelste 500 solo. De snelste tijd staat dan onder de naam."
+ ]},
  {"version": "1.5.0",
   "date": "2026-11-16",
   "changes": [
