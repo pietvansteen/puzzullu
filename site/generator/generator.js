@@ -14,6 +14,11 @@
   let st = { ...standaard };
   try { st = { ...standaard, ...JSON.parse(localStorage.getItem(OPSLAG) || "{}") }; } catch (e) { /* private window */ }
   const bewaar = () => { try { localStorage.setItem(OPSLAG, JSON.stringify(st)); } catch (e) { /* ignore */ } };
+  st.stukjes = st.stukjes.map(String); // sizes are "500" or "500e" (expert) since 2.0; older settings hold numbers
+
+  // a size: the piece count, plus "e" for an expert version (JvH Expert series), so "500" is the normal 500 only
+  const maat = (a, stukjes) => `${stukjes}${a && (a.expert || []).includes(stukjes) ? "e" : ""}`;
+  const maatLabel = (m) => (m.endsWith("e") ? `${parseInt(m, 10)} expert` : m);
 
   let D = null;
   let PD = null; // data.json made ready by rekenen.js, for the prediction
@@ -42,7 +47,8 @@
     }
     const perEigenaar = {};
     for (const e of dozen) for (const o of e.eigenaren) telOp(perEigenaar, o);
-    const stukjes = [...new Set(dozen.map((e) => e.stukjes).filter(Boolean))].sort((x, y) => x - y);
+    const stukjes = [...new Set(dozen.filter((e) => e.stukjes).map((e) => maat(afb[e.afbeelding], e.stukjes)))]
+      .sort((x, y) => parseInt(x, 10) - parseInt(y, 10) || x.length - y.length);
     return { afb, dozen, gedaan, keer, eigenaren: opAantal(perEigenaar), makers: opAantal(keer), stukjes };
   }
 
@@ -53,7 +59,7 @@
 
   function tekenFilters() {
     $("f-eigenaar").innerHTML = D.eigenaren.map((v) => chip("eigenaren", v)).join("");
-    $("f-stukjes").innerHTML = D.stukjes.map((v) => chip("stukjes", v)).join("");
+    $("f-stukjes").innerHTML = D.stukjes.map((v) => chip("stukjes", v, maatLabel(v))).join("");
     $("f-rating").innerHTML = [1, 2, 3, 4, 5, 0].map((v) => chip("moeilijk", v, v ? "★".repeat(v) : "Zonder rating",
       v ? ` aria-label="Rating ${v} van 5"` : "")).join("");
     tekenNamen();
@@ -71,7 +77,7 @@
     return D.dozen.filter((e) => {
       const a = D.afb[e.afbeelding];
       if (st.eigenaren.length && !e.eigenaren.some((o) => st.eigenaren.includes(o))) return false;
-      if (st.stukjes.length && !st.stukjes.includes(e.stukjes)) return false;
+      if (st.stukjes.length && !st.stukjes.includes(maat(a, e.stukjes))) return false;
       if (st.moeilijk.length && !st.moeilijk.includes(a.rating || 0)) return false;
       const v = D.gedaan[versie(e.afbeelding, e.stukjes)];
       // samen: never did it with all of them in one go (as a duo, team, ...); otherwise: none of them ever did it
@@ -111,7 +117,7 @@
     const b = ev.target.closest(".chip[data-key]");
     if (!b) return;
     const key = b.dataset.key;
-    const v = ["stukjes", "moeilijk"].includes(key) ? Number(b.dataset.v) : b.dataset.v;
+    const v = key === "moeilijk" ? Number(b.dataset.v) : b.dataset.v;
     st[key] = st[key].includes(v) ? st[key].filter((x) => x !== v) : [...st[key], v];
     b.setAttribute("aria-pressed", st[key].includes(v));
     bewaar();
